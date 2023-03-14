@@ -60,4 +60,3 @@ void main()
         cor_interpolada_pelo_rasterizador = color_coefficients;
     }
 }
-
