@@ -334,7 +334,7 @@ int main()
         glm::vec4 cameraOnEyesHeight =    glm::vec4(x,0.0f,z,0.0f);
         glm::vec4 camera_lookat_l     = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
         glm::vec4 camera_view_vector  = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
-        glm::vec4 camera_up_vector    = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
+        glm::vec4 camera_up_vector    = glm::vec4(0.0f,1.1f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
        glm::vec4 cameraRight =     crossproduct(camera_up_vector,cameraTarget);
         glm::vec4 camera_right_vector = crossproduct(camera_up_vector,camera_position_c); // Vetor que aponta para a "direita", criado através do produto vetorial do vetor up e o vetor view_camera
         camera_position               = Update_Camera_Position(camera_position, cameraOnEyesHeight, camera_right_vector); // Posição da camera, atualizada conforme a movimentação livre
