@@ -19,10 +19,16 @@ uniform mat4 view;
 uniform mat4 projection;
 
 // Identificador que define qual objeto está sendo desenhado no momento
-#define SPHERE 0
-#define BUNNY  1
-#define PLANE  2
-#define CAR    3
+#define PLANE  0
+#define CAR    1
+#define BUNNY  2
+#define BACK   3
+#define BOTTOM 4
+#define FRONT  5
+#define LEFT   6
+#define RIGHT  7
+#define TOP    8
+
 uniform int object_id;
 
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
@@ -33,6 +39,11 @@ uniform vec4 bbox_max;
 uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
+uniform sampler2D TextureImage3;
+uniform sampler2D TextureImage4;
+uniform sampler2D TextureImage5;
+uniform sampler2D TextureImage6;
+uniform sampler2D TextureImage7;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -74,26 +85,72 @@ void main()
     vec3 Ka; // Refletância ambiente
     float q; // Expoente especular para o modelo de iluminação de Phong
 
+    vec3 Kd;
+
     if( object_id == CAR )
     {
         U = texcoords.x;
         V = texcoords.y;
         q = 1.0;
+        Kd = texture(TextureImage7, vec2(U,V)).rgb;
     }
     else if ( object_id == PLANE )
     {
         q = 20.0;
         U = texcoords.x;
         V = texcoords.y;
+        Kd = texture(TextureImage0, vec2(U,V)).rgb;
+    }
+    else if ( object_id == BACK )
+    {
+        q = 20.0;
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage1, vec2(U,V)).rgb;
+    }
+    else if ( object_id == BOTTOM )
+    {
+        q = 20.0;
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage2, vec2(U,V)).rgb;
+    }
+    else if ( object_id == FRONT )
+    {
+        q = 20.0;
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage3, vec2(U,V)).rgb;
+    }
+    else if ( object_id == LEFT )
+    {
+        q = 20.0;
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage4, vec2(U,V)).rgb;
+    }
+    else if ( object_id == RIGHT )
+    {
+        q = 20.0;
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage5, vec2(U,V)).rgb;
+    }
+    else if ( object_id == TOP )
+    {
+        q = 20.0;
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage6, vec2(U,V)).rgb;
     }
     else // Objeto desconhecido = preto
     {
-        U = texcoords.x;
-        V = texcoords.y;
+        Kd = vec3(0.0,0.0,0.0);
+        Ka = vec3(0.0,0.0,0.0);
+        q = 1.0;
     }
 
     // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
-    vec3 Kd = texture(TextureImage2, vec2(U,V)).rgb;
 
     vec3 I = vec3(1.0, 1.0, 1.0);
 
@@ -101,7 +158,7 @@ void main()
     vec3 Ia = vec3(1.0, 1.0, 1.0); // PREENCHA AQUI o espectro da luz ambiente
 
     // Termo difuso utilizando a lei dos cossenos de Lambert
-    vec3 lambert_diffuse_term = Kd; // PREENCHA AQUI o termo difuso de Lambert
+    vec3 lambert_diffuse_term = Kd * I; // PREENCHA AQUI o termo difuso de Lambert
 
     // Termo ambiente
     vec3 ambient_term = Ka*Ia; // PREENCHA AQUI o termo ambiente
@@ -112,4 +169,3 @@ void main()
     color.rgb = pow(color.rgb, vec3(1.0,1.0,1.0)/2.2);
 
 }
-
