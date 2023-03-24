@@ -20,14 +20,11 @@ uniform mat4 projection;
 
 // Identificador que define qual objeto está sendo desenhado no momento
 #define PLANE  0
-#define CAR    1
-#define BUNNY  2
-#define BACK   3
-#define BOTTOM 4
-#define FRONT  5
-#define LEFT   6
-#define RIGHT  7
-#define TOP    8
+#define OP     1
+#define BACK   2
+#define LEFT   3
+#define RIGHT  4
+#define CAR    5
 
 uniform int object_id;
 
@@ -42,8 +39,6 @@ uniform sampler2D TextureImage2;
 uniform sampler2D TextureImage3;
 uniform sampler2D TextureImage4;
 uniform sampler2D TextureImage5;
-uniform sampler2D TextureImage6;
-uniform sampler2D TextureImage7;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -87,12 +82,19 @@ void main()
 
     vec3 Kd;
 
+    if( object_id == OP )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        q = 1.0;
+        Kd = texture(TextureImage5, vec2(U,V)).rgb;
+    }
     if( object_id == CAR )
     {
         U = texcoords.x;
         V = texcoords.y;
         q = 1.0;
-        Kd = texture(TextureImage7, vec2(U,V)).rgb;
+        Kd = texture(TextureImage4, vec2(U,V)).rgb;
     }
     else if ( object_id == PLANE )
     {
@@ -108,40 +110,19 @@ void main()
         V = texcoords.y;
         Kd = texture(TextureImage1, vec2(U,V)).rgb;
     }
-    else if ( object_id == BOTTOM )
-    {
-        q = 20.0;
-        U = texcoords.x;
-        V = texcoords.y;
-        Kd = texture(TextureImage2, vec2(U,V)).rgb;
-    }
-    else if ( object_id == FRONT )
+    else if ( object_id == LEFT )
     {
         q = 20.0;
         U = texcoords.x;
         V = texcoords.y;
         Kd = texture(TextureImage3, vec2(U,V)).rgb;
     }
-    else if ( object_id == LEFT )
-    {
-        q = 20.0;
-        U = texcoords.x;
-        V = texcoords.y;
-        Kd = texture(TextureImage4, vec2(U,V)).rgb;
-    }
     else if ( object_id == RIGHT )
     {
         q = 20.0;
         U = texcoords.x;
         V = texcoords.y;
-        Kd = texture(TextureImage5, vec2(U,V)).rgb;
-    }
-    else if ( object_id == TOP )
-    {
-        q = 20.0;
-        U = texcoords.x;
-        V = texcoords.y;
-        Kd = texture(TextureImage6, vec2(U,V)).rgb;
+        Kd = texture(TextureImage2, vec2(U,V)).rgb;
     }
     else // Objeto desconhecido = preto
     {
