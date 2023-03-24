@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <random>
 #include <math.h>       /* log */
+#include <time.h>//necessário p/ função time()
 // Headers das bibliotecas OpenGL
 #include <glad/glad.h>   // Criação de contexto OpenGL 3.3
 #include <GLFW/glfw3.h>  // Criação de janelas do sistema operacional
@@ -161,6 +162,8 @@ glm::vec3 x_z_position();
 
 std::vector<glm::vec3> arrayOfPositions;
 
+bool Collide=false;
+
 // Definimos uma estrutura que armazenará dados necessários para renderizar
 // cada objeto da cena virtual.
 struct SceneObject
@@ -234,7 +237,7 @@ GLint g_bbox_max_uniform;
 GLuint g_NumLoadedTextures = 0;
 
 // Variáveis que controlam a variação de tempo. Usada na função update_camera_position
-float time;
+float time_;
 float time_span;
 float time_past;
 
@@ -255,9 +258,11 @@ float x_car_position = 0.0f;
 float ang_rotation = 0.0f;
 
 std::random_device seeder;
-std::mt19937 engine(seeder());
+std::mt19937 engine(time(NULL));
 std::uniform_int_distribution<int> g_obstacles(0,2);
-std::uniform_real_distribution<float> g_distance(5,6);
+std::uniform_int_distribution<int> g_obs_dis(1,2);
+std::uniform_real_distribution<float> g_distance(5.0f,8.0f);
+
 
 int main(int argc, char* argv[])
 {
@@ -397,12 +402,12 @@ int main(int argc, char* argv[])
     glFrontFace(GL_CCW);
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window)&&!Collide)
     {
         // Tempo de jogo
-        time = (float)glfwGetTime();
-        time_span = time - time_past;
-        time_past = time;
+        time_ = (float)glfwGetTime();
+        time_span = time_ - time_past;
+        time_past = time_;
 
         // Aqui executamos as operações de renderização
 
@@ -607,12 +612,12 @@ int main(int argc, char* argv[])
 
 
 
-        for(int i=0; i < 10; i++){
+        for(int i=0; i < 100; i++){
             //desenha a coelho no mapa
         //    model = Matrix_Translate(arrayOfBunnys[i].position.x, arrayOfBunnys[i].position.y, arrayOfBunnys[i].position.z)
         float current_pos = arrayOfPositions[i].z-z_car_position;
         if(current_pos<0.0f)
-          arrayOfPositions[i].z=arrayOfPositions[i].z+50.0f;
+          arrayOfPositions[i].z=arrayOfPositions[i].z+700.0f;
         //  printf("%f",current_pos);
 
         modelOp = Matrix_Translate(arrayOfPositions[i].x, -1.5f, arrayOfPositions[i].z-z_car_position)
@@ -649,8 +654,7 @@ int main(int argc, char* argv[])
 
 
         if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
-                TextRendering_PrintString(window, " Model matrix             Model     In World Coords.", -1.0f, 1.0f, 1.0f);
-
+               Collide=true;
                 printf("BATEU PORRA!!");}
 
       //  printf ("\n BBOX MAX: %f,%f,%f         BBOX MIN: %f,%f,%f", bbox_max_global_vec3.x,bbox_max_global_vec3.y,bbox_max_global_vec3.z,
@@ -718,6 +722,7 @@ bool bbcollision(glm::vec3 bbox_min1,glm::vec3 bbox_min2,glm::vec3 bbox_max1,glm
 glm::vec3 x_z_position()
 {
     arrayOfPositions.clear();
+    float posZ=0;
 
     for(int j=0;j<100;j++){
 
@@ -725,17 +730,18 @@ glm::vec3 x_z_position()
 
     glm::vec3 positions;
 
-    float posZ=g_distance(engine);
+    posZ+=g_distance(engine);
    // printf("\n%f",posZ);
 
     float posX[]={-1.3f,0.0f,1.3f};
 
 
     n_obstacles = g_obstacles(engine);
+    int obss = g_obs_dis(engine);
 
 
     for(int i=0;i<n_obstacles;i++){
-        positions=glm::vec3(posX[g_obstacles(engine)],0.0f,posZ*j);
+        positions=glm::vec3(posX[g_obstacles(engine)],0.0f,posZ);
        // printf("\n%f",posZ*j);
 
         arrayOfPositions.push_back(positions);}
@@ -1595,8 +1601,8 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
     if (key == GLFW_KEY_W && action == GLFW_PRESS){
         g_wKeyPressed = true;}
 
-    if (key == GLFW_KEY_W && action == GLFW_RELEASE){
-        g_wKeyPressed = false;}
+    //if (key == GLFW_KEY_W && action == GLFW_RELEASE){
+      //  g_wKeyPressed = false;}
 
     // Se o usuário pressionar a tecla S, a câmera se moverá para trás.
     if (key == GLFW_KEY_S && action == GLFW_PRESS){
