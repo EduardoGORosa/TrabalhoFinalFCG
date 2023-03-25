@@ -19,15 +19,14 @@ uniform mat4 view;
 uniform mat4 projection;
 
 // Identificador que define qual objeto está sendo desenhado no momento
-#define PLANE  0
-#define CAR    1
-#define BUNNY  2
-#define BACK   3
-#define BOTTOM 4
-#define FRONT  5
-#define LEFT   6
-#define RIGHT  7
-#define TOP    8
+#define PLANE       0
+#define OP          1
+#define BACK        2
+#define LEFT        3
+#define RIGHT       4
+#define CAR         5
+#define BANDIDAO    6
+#define POLICE      7
 
 uniform int object_id;
 
@@ -71,109 +70,103 @@ void main()
     vec4 n = normalize(normal);
 
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
-    vec4 l = normalize(vec4(1.0, 1.0, 0.0, 1.0));
+    vec4 l = normalize(vec4(2.5, 1.5, 1.0, 0.0));
 
     // Vetor que define o sentido da câmera em relação ao ponto atual.
     vec4 v = normalize(camera_position - p);
 
     vec4 r = -l + 2*n*dot(n,l); // PREENCHA AQUI o vetor de reflexão especular ideal
 
-
-    // Parâmetros que definem as propriedades espectrais da superfície
-    vec3 Kd; // Refletância difusa
-    vec3 Ks; // Refletância especular
-    vec3 Ka; // Refletância ambiente
-
     // Coordenadas de textura U e V
     float U = 0.0;
     float V = 0.0;
-    // Parâmetros que definem as propriedades espectrais da superfície
-    float q; // Expoente especular para o modelo de iluminação de Phong
+    float q = 3.5;
+    vec3 Kd;
+    vec3 I = vec3(1.0,1.0,1.0);
+    vec3 Ks = vec3(1.0,1.0,0.8);
+    vec3 phong_specular_term  = Ks*I*(pow(max(0,dot(r,v)),q));
+
+
+    vec3 lambert = I * max(0,dot(n,l));
+        vec3 Ia = vec3(0.0,0.0,0.0);
+        vec3 Ka = vec3(0.5,0.2,0.2);
+        vec3 ambient_term = Ka*Ia;
+
 
     if( object_id == CAR )
     {
 
-        Kd = texture(TextureImage7, vec2(U,V)).rgb;
-        Ks = vec3(0.4, 0.4, 0.4);
-        Ka = vec3(0.04,0.2,0.4);
-        q = 2.0;
-
-     //   U = texcoords.x;
-     //   V = texcoords.y;
-      //  q = 1.0;
-      //  Kd = texture(TextureImage7, vec2(U,V)).rgb;
-    }
-    else if ( object_id == PLANE )
-    {
-        q = 20.0;
-        U = texcoords.x;
-        V = texcoords.y;
-        Kd = texture(TextureImage0, vec2(U,V)).rgb;
-    }
-    else if ( object_id == BACK )
-    {
-        q = 20.0;
-        U = texcoords.x;
-        V = texcoords.y;
-        Kd = texture(TextureImage1, vec2(U,V)).rgb;
-    }
-    else if ( object_id == BOTTOM )
-    {
-        q = 20.0;
-        U = texcoords.x;
-        V = texcoords.y;
-        Kd = texture(TextureImage2, vec2(U,V)).rgb;
-    }
-    else if ( object_id == FRONT )
-    {
-        q = 20.0;
-        U = texcoords.x;
-        V = texcoords.y;
-        Kd = texture(TextureImage3, vec2(U,V)).rgb;
-    }
-    else if ( object_id == LEFT )
-    {
-        q = 20.0;
         U = texcoords.x;
         V = texcoords.y;
         Kd = texture(TextureImage4, vec2(U,V)).rgb;
+
+        color.rgb = Kd * (lambert+0.7) + phong_specular_term +ambient_term;
+    }
+    if( object_id == OP )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+        Kd = texture(TextureImage4, vec2(U,V)).rgb;
+        color.rgb = Kd * (lambert) + phong_specular_term+ambient_term;
+    }
+    else if ( object_id == PLANE )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage0, vec2(U,V)).rgb;
+
+        color.rgb = Kd * (lambert+1.0)+phong_specular_term+(ambient_term*0.25);
+    }
+    else if ( object_id == BACK )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage1, vec2(U,V)).rgb;
+
+        color.rgb = Kd * (lambert + 1)+(ambient_term*0.25);
+    }
+    else if ( object_id == LEFT )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage3, vec2(U,V)).rgb;
+
+        color.rgb = Kd * (lambert + 1)+(ambient_term*0.25);
     }
     else if ( object_id == RIGHT )
     {
-        q = 20.0;
         U = texcoords.x;
         V = texcoords.y;
-        Kd = texture(TextureImage5, vec2(U,V)).rgb;
+        Kd = texture(TextureImage2, vec2(U,V)).rgb;
+        color.rgb = Kd * (lambert + 1)+(ambient_term*0.25);
     }
-    else if ( object_id == TOP )
+    else if( object_id == BANDIDAO )
     {
-        q = 20.0;
         U = texcoords.x;
         V = texcoords.y;
-        Kd = texture(TextureImage6, vec2(U,V)).rgb;
+
+        Kd = texture(TextureImage5, vec2(U,V)).rgb;
+        vec3 lambert = I * max(0,dot(n,l));
+        vec3 Ia = vec3(0.87,0,0.42);
+        vec3 Ka = vec3(0.2,0.2,0.2);
+        vec3 ambient_term = Ka*Ia;
+        color.rgb = Kd*(lambert) + phong_specular_term;
     }
+    else if( object_id == POLICE )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+        Kd = texture(TextureImage6, vec2(U,V)).rgb;
+        float lambert = max(0,dot(n,l));
+        color.rgb = Kd * (lambert + 1);
+    }
+
     else // Objeto desconhecido = preto
     {
         Kd = vec3(0.0,0.0,0.0);
-        Ka = vec3(0.0,0.0,0.0);
-        q = 1.0;
     }
-
-    // Obtemos a refletância difusa a partir da leitura da imagem TextureImage0
-
-    vec3 I = vec3(1.0, 1.0, 1.0);
-
-    // Espectro da luz ambiente
-    vec3 Ia = vec3(1.0, 1.0, 1.0); // PREENCHA AQUI o espectro da luz ambiente
-
-    // Termo difuso utilizando a lei dos cossenos de Lambert
-    vec3 lambert_diffuse_term = Kd * I; // PREENCHA AQUI o termo difuso de Lambert
-
-    // Termo ambiente
-    vec3 ambient_term = Ka*Ia; // PREENCHA AQUI o termo ambiente
-
-
-    color.rgb = lambert_diffuse_term + ambient_term;
 
     color.rgb = pow(color.rgb, vec3(1.0,1.0,1.0)/2.2);
 
