@@ -30,7 +30,7 @@ uniform mat4 projection;
 #define FERRARI     8
 
 uniform int object_id;
-
+uniform float time_past;
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
 uniform vec4 bbox_min;
 uniform vec4 bbox_max;
@@ -115,7 +115,7 @@ void main()
     else if ( object_id == PLANE )
     {
         U = texcoords.x;
-        V = texcoords.y;
+        V = texcoords.y * 10 - time_past;
         Kd = texture(TextureImage0, vec2(U,V)).rgb;
 
         color.rgb = Kd * (lambert+1.0)+phong_specular_term+(ambient_term*0.25);

@@ -236,7 +236,7 @@ GLint g_projection_uniform;
 GLint g_object_id_uniform;
 GLint g_bbox_min_uniform;
 GLint g_bbox_max_uniform;
-
+GLint g_time_past_uniform;
 // Número de texturas carregadas pela função LoadTextureImage()
 GLuint g_NumLoadedTextures = 0;
 
@@ -248,11 +248,10 @@ float time_past;
 float counter=1;
 int j=0;
 
-bool g_wKeyPressed = false;
+bool init = false;
 bool g_sKeyPressed = false;
 bool g_aKeyPressed = false;
 bool g_dKeyPressed = false;
-
 // Define posição inicial da câmera
 glm::vec4 camera_position  = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -438,9 +437,12 @@ int main(int argc, char* argv[])
     while (!glfwWindowShouldClose(window))
     {
         // Tempo de jogo
-        time_ = (float)glfwGetTime();
-        time_span = time_ - time_past;
-        time_past = time_;
+        if (init)
+        {
+            time_ = (float)glfwGetTime();
+            time_span = time_ - time_past;
+            time_past = time_;
+        }
 
         // Aqui executamos as operações de renderização
 
@@ -531,7 +533,7 @@ int main(int argc, char* argv[])
         // efetivamente aplicadas em todos os pontos.
         glUniformMatrix4fv(g_view_uniform       , 1 , GL_FALSE , glm::value_ptr(view));
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
-
+        glUniform1f(g_time_past_uniform, time_past);
 
         #define PLANE       0
         #define CHEVETAO    1
@@ -895,7 +897,7 @@ glm::vec4 Update_Camera_Position(glm::vec4 camera_position, glm::vec4 camera_vie
 
     glm::vec4 new_camera_position = camera_position;
 
-    if(g_wKeyPressed){
+    if(init){
       //  new_camera_position = new_camera_position + camera_view_vector * abs(time_span*1.5f *log(time_past));
         z_car_position+= camera_view_vector.z * abs(time_span*1.5f*log(time_past));}
 
@@ -923,7 +925,7 @@ float Update_Car_Position(glm::vec3 car_position,glm::vec3 update_vector_z)
 {
     float new_car_position = car_position.z;
 
-    if(g_wKeyPressed){
+    if(init){
         new_car_position = new_car_position + 1.0f * time_span;}
 
     return new_car_position;
@@ -958,7 +960,7 @@ void LoadTextureImage(const char* filename)
 
 
     // Veja slides 95-96 do documento Aula_20_Mapeamento_de_Texturas.pdf
-    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
     glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 
     // Parâmetros de amostragem da textura.
@@ -975,6 +977,7 @@ void LoadTextureImage(const char* filename)
     glActiveTexture(GL_TEXTURE0 + textureunit);
     glBindTexture(GL_TEXTURE_2D, texture_id);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindSampler(textureunit, sampler_id);
 
@@ -1058,7 +1061,7 @@ void LoadShadersFromFiles()
     g_object_id_uniform  = glGetUniformLocation(g_GpuProgramID, "object_id"); // Variável "object_id" em shader_fragment.glsl
     g_bbox_min_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_min");
     g_bbox_max_uniform   = glGetUniformLocation(g_GpuProgramID, "bbox_max");
-
+    g_time_past_uniform   = glGetUniformLocation(g_GpuProgramID, "time_past");
     // Variáveis em "shader_fragment.glsl" para acesso das imagens de textura
     glUseProgram(g_GpuProgramID);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage0"), 0);
@@ -1695,10 +1698,10 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
 
     // Se o usuário pressionar a tecla W, a câmera se moverá para frente.
     if (key == GLFW_KEY_W && action == GLFW_PRESS){
-        g_wKeyPressed = true;}
+        init = true;}
 
     //if (key == GLFW_KEY_W && action == GLFW_RELEASE){
-      //  g_wKeyPressed = false;}
+      //  init = false;}
 
     // Se o usuário pressionar a tecla S, a câmera se moverá para trás.
     if (key == GLFW_KEY_S && action == GLFW_PRESS){
