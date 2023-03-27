@@ -160,7 +160,11 @@ bool bbcollision(glm::vec3 bbox_min1,glm::vec3 bbox_min2,glm::vec3 bbox_max1,glm
 
 glm::vec3 x_z_position();
 
-std::vector<glm::vec3> arrayOfPositions;
+std::vector<glm::vec3> arrayOfPositions1;
+std::vector<glm::vec3> arrayOfPositions2;
+std::vector<glm::vec3> arrayOfPositions3;
+std::vector<glm::vec3> arrayOfPositions4;
+
 
 bool Collide=false;
 
@@ -260,6 +264,7 @@ float ang_rotation = 0.0f;
 std::random_device seeder;
 std::mt19937 engine(time(NULL));
 std::uniform_int_distribution<int> g_obstacles(0,2);
+std::uniform_int_distribution<int> randnum(1,3);
 std::uniform_int_distribution<int> g_obs_dis(1,2);
 std::uniform_real_distribution<float> g_distance(7.5f,10.0f);
 
@@ -610,20 +615,100 @@ int main(int argc, char* argv[])
 
 
 
-        for(int i=0; i < 100; i++){
-            //desenha a coelho no mapa
-        //    model = Matrix_Translate(arrayOfBunnys[i].position.x, arrayOfBunnys[i].position.y, arrayOfBunnys[i].position.z)
-        float current_pos = arrayOfPositions[i].z-z_car_position;
+        for(int i=0; i < arrayOfPositions1.size(); i++){
+
+        float current_pos = arrayOfPositions1[i].z-z_car_position;
         if(current_pos<0.0f)
-          arrayOfPositions[i].z=arrayOfPositions[i].z+950.0f;
+          arrayOfPositions1[i].z=arrayOfPositions1[i].z+950.0f;
         //  printf("%f",current_pos);
 
 
-                    glm::vec3 bbox_min_global_Op;
-                    glm::vec3 bbox_max_global_Op;
+                    modelpolice = Matrix_Translate(arrayOfPositions1[i].x, -1.2f, current_pos)
+                               * Matrix_Scale(0.25f,0.25f,0.25f);
+                              //* Matrix_Rotate_Y(3.14f/2.0f);
+                    glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelpolice));
+                    glUniform1i(g_object_id_uniform, POLICE);
+                    DrawVirtualObject("the_police");
+
+                    glm::vec3 bbox_min_Op_vec = g_VirtualScene["the_police"].bbox_min;
+                    glm::vec3 bbox_max_Op_vec = g_VirtualScene["the_police"].bbox_max;
+
+                    // Calculate the global coordinates of the bbox_min and bbox_max
+                    glm::vec4 bbox_min_Op = (modelpolice) * glm::vec4(bbox_min_Op_vec, 1.0);
+                    glm::vec4 bbox_max_Op = (modelpolice) * glm::vec4(bbox_max_Op_vec, 1.0);
+
+                    // Extract the global coordinates as 3D vectors
+                    glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
+                    glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
+
+                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
+               Collide=true;
+                printf("BATEU PORRA!!");}}
 
 
-        int number=g_obstacles(engine);
+
+                for(int i=0; i < arrayOfPositions3.size(); i++){
+            //desenha a coelho no mapa
+        //    model = Matrix_Translate(arrayOfBunnys[i].position.x, arrayOfBunnys[i].position.y, arrayOfBunnys[i].position.z)
+        float current_pos = arrayOfPositions3[i].z-z_car_position;
+        if(current_pos<0.0f)
+          arrayOfPositions3[i].z=arrayOfPositions3[i].z+950.0f;
+        //  printf("%f",current_pos);
+
+
+                    modelOp = Matrix_Translate(arrayOfPositions3[i].x, -1.5f, current_pos)
+                                * Matrix_Scale(0.3f, 0.3f, 0.3f);
+                                //* Matrix_Rotate_Y(3.1415f);
+                    glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelOp));
+                    glUniform1i(g_object_id_uniform, OP);
+                    DrawVirtualObject("the_op");
+
+                    glm::vec3 bbox_min_Op_vec = g_VirtualScene["the_op"].bbox_min;
+                    glm::vec3 bbox_max_Op_vec = g_VirtualScene["the_op"].bbox_max;
+
+                    // Calculate the global coordinates of the bbox_min and bbox_max
+                    glm::vec4 bbox_min_Op = (modelOp) * glm::vec4(bbox_min_Op_vec, 1.0);
+                    glm::vec4 bbox_max_Op = (modelOp) * glm::vec4(bbox_max_Op_vec, 1.0);
+
+                    // Extract the global coordinates as 3D vectors
+                    glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
+                    glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
+
+                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
+               Collide=true;
+                printf("BATEU PORRA!!");}}
+
+
+
+            for(int i=0; i < arrayOfPositions2.size(); i++){
+            //desenha a coelho no mapa
+        //    model = Matrix_Translate(arrayOfBunnys[i].position.x, arrayOfBunnys[i].position.y, arrayOfBunnys[i].position.z)
+        float current_pos = arrayOfPositions2[i].z-z_car_position;
+        if(current_pos<0.0f)
+          arrayOfPositions2[i].z=arrayOfPositions2[i].z+950.0f;
+        //  printf("%f",current_pos);
+
+
+                    modelbandidao = Matrix_Translate(arrayOfPositions2[i].x, -1.5f, current_pos)
+                                * Matrix_Scale(0.25f,0.25f,0.25f);
+                              //  * Matrix_Rotate_Y(-3.14f/2.0f);
+                    glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelbandidao));
+                    glUniform1i(g_object_id_uniform, BANDIDAO);
+                    DrawVirtualObject("the_bandidao");
+
+                    glm::vec3 bbox_min_Op_vec = g_VirtualScene["the_bandidao"].bbox_min;
+                    glm::vec3 bbox_max_Op_vec = g_VirtualScene["the_bandidao"].bbox_max;
+
+                    // Calculate the global coordinates of the bbox_min and bbox_max
+                    glm::vec4 bbox_min_Op = (modelbandidao) * glm::vec4(bbox_min_Op_vec, 1.0);
+                    glm::vec4 bbox_max_Op = (modelbandidao) * glm::vec4(bbox_max_Op_vec, 1.0);
+
+                    // Extract the global coordinates as 3D vectors
+                    glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
+                    glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
+
+
+      /*  int number=g_obstacles(engine);
             switch(number)
             {
                 case(0):{
@@ -686,7 +771,7 @@ int main(int argc, char* argv[])
                     glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);}
                     break;
 
-            }
+            }*/
 
 
 
@@ -769,7 +854,11 @@ bool bbcollision(glm::vec3 bbox_min1,glm::vec3 bbox_min2,glm::vec3 bbox_max1,glm
 
 glm::vec3 x_z_position()
 {
-    arrayOfPositions.clear();
+    arrayOfPositions1.clear();
+    arrayOfPositions2.clear();
+    arrayOfPositions3.clear();
+    arrayOfPositions4.clear();
+
     float posZ=0;
 
     for(int j=0;j<100;j++){
@@ -787,14 +876,34 @@ glm::vec3 x_z_position()
     n_obstacles = g_obstacles(engine);
     int obss = g_obs_dis(engine);
 
+   // int random1_4=randnum(engine);
+   int aux=6;
 
     for(int i=0;i<n_obstacles;i++){
-        positions=glm::vec3(posX[g_obstacles(engine)],0.0f,posZ);
-       // printf("\n%f",posZ*j);
+        int carpos=g_obstacles(engine);
+        while(carpos==aux)
+        {
+            carpos=g_obstacles(engine);
+        }
+        positions=glm::vec3(posX[carpos],0.0f,posZ);
+        aux=carpos;
 
-        arrayOfPositions.push_back(positions);}
-
-    }
+        switch(randnum(engine))
+        {
+            case(1):
+                arrayOfPositions1.push_back(positions);
+                break;
+            case(2):
+                arrayOfPositions2.push_back(positions);
+                break;
+            case(3):
+                arrayOfPositions3.push_back(positions);
+                break;
+            case(4):
+                arrayOfPositions4.push_back(positions);
+                break;
+        }
+    }}
 
   //  printf("%d",n_obstacles);
 
