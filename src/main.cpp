@@ -638,7 +638,7 @@ int main(int argc, char* argv[])
 
         float current_pos = arrayOfPositions1[i].z-z_car_position;
         if(current_pos<0.0f)
-          arrayOfPositions1[i].z=arrayOfPositions1[i].z+950.0f;
+          arrayOfPositions1[i].z=arrayOfPositions1[i].z+900.0f;
         //  printf("%f",current_pos);
 
 
@@ -663,7 +663,7 @@ int main(int argc, char* argv[])
                     if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)&&canHit){
                Collide=true;
                canHit=false;
-                printf("BATEU PORRA!!");}}
+                printf("BATEU!!");}}
 
 
 
@@ -672,7 +672,7 @@ int main(int argc, char* argv[])
         //    model = Matrix_Translate(arrayOfBunnys[i].position.x, arrayOfBunnys[i].position.y, arrayOfBunnys[i].position.z)
         float current_pos = arrayOfPositions3[i].z-z_car_position;
         if(current_pos<0.0f)
-          arrayOfPositions3[i].z=arrayOfPositions3[i].z+950.0f;
+          arrayOfPositions3[i].z=arrayOfPositions3[i].z+900.0f;
         //  printf("%f",current_pos);
 
 
@@ -697,7 +697,7 @@ int main(int argc, char* argv[])
                     if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)&&canHit){
                Collide=true;
                canHit=false;
-                printf("BATEU PORRA!!");}}
+                printf("BATEU!!");}}
 
 
 
@@ -706,7 +706,7 @@ int main(int argc, char* argv[])
         //    model = Matrix_Translate(arrayOfBunnys[i].position.x, arrayOfBunnys[i].position.y, arrayOfBunnys[i].position.z)
         float current_pos = arrayOfPositions2[i].z-z_car_position;
         if(current_pos<0.0f)
-          arrayOfPositions2[i].z=arrayOfPositions2[i].z+950.0f;
+          arrayOfPositions2[i].z=arrayOfPositions2[i].z+900.0f;
         //  printf("%f",current_pos);
 
 
@@ -731,7 +731,7 @@ int main(int argc, char* argv[])
        if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)&&canHit){
                Collide=true;
                canHit=false;
-                printf("BATEU PORRA!!");}}
+                printf("BATEU!!");}}
 
 
         for(int i=0; i < arrayOfPositions4.size(); i++){
@@ -739,7 +739,7 @@ int main(int argc, char* argv[])
         //    model = Matrix_Translate(arrayOfBunnys[i].position.x, arrayOfBunnys[i].position.y, arrayOfBunnys[i].position.z)
         float current_pos = arrayOfPositions4[i].z-z_car_position;
         if(current_pos<0.0f)
-          arrayOfPositions4[i].z=arrayOfPositions4[i].z+950.0f;
+          arrayOfPositions4[i].z=arrayOfPositions4[i].z+900.0f;
         //  printf("%f",current_pos);
 
 
@@ -764,7 +764,7 @@ int main(int argc, char* argv[])
                     if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)&&canHit){
                Collide=true;
                canHit=false;
-                printf("BATEU PORRA!!");}}
+                printf("BATEU!!");}}
 
         float pad = TextRendering_LineHeight(window);
 
@@ -950,7 +950,7 @@ glm::vec4 Update_Camera_Position(glm::vec4 camera_position, glm::vec4 camera_vie
     if(init){
       //  new_camera_position = new_camera_position + camera_view_vector * abs(time_span*1.5f *log(time_past));
        // z_car_position+= camera_view_vector.z * abs(time_span*1.5f*log(time_past));
-       z_car_position+= camera_view_vector.z * (time_span/10) * (speed*2);
+       z_car_position+= camera_view_vector.z * (time_span/10) * (speed);
         started=true;
         }
 
