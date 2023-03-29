@@ -19,18 +19,20 @@ uniform mat4 view;
 uniform mat4 projection;
 
 // Identificador que define qual objeto está sendo desenhado no momento
-#define PLANE       0
-#define CHEVETAO    1
-#define BACK        2
-#define LEFT        3
-#define RIGHT       4
-#define CAR         5
-#define BANDIDAO    6
-#define POLICE      7
-#define FERRARI     8
-
+#define PLANE             0
+#define CHEVETAO          1
+#define BACK              2
+#define LEFT              3
+#define RIGHT             4
+#define CAR               5
+#define BANDIDAO          6
+#define POLICE            7
+#define FERRARI           8
+#define INTERFACE_INICIAL 9
+#define MORTE             10
 uniform int object_id;
 uniform float time_past;
+uniform float tempoDec;
 // Parâmetros da axis-aligned bounding box (AABB) do modelo
 uniform vec4 bbox_min;
 uniform vec4 bbox_max;
@@ -45,6 +47,8 @@ uniform sampler2D TextureImage5;
 uniform sampler2D TextureImage6;
 uniform sampler2D TextureImage7;
 uniform sampler2D TextureImage8;
+uniform sampler2D TextureImage9;
+uniform sampler2D TextureImage10;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -110,12 +114,12 @@ void main()
         V = texcoords.y;
 
         Kd = texture(TextureImage7, vec2(U,V)).rgb;
-        color.rgb = Kd * (lambert) + phong_specular_term+ambient_term;
+        color.rgb = Kd * (lambert+1) + phong_specular_term+ambient_term;
     }
     else if ( object_id == PLANE )
     {
         U = texcoords.x;
-        V = texcoords.y * 10 - time_past;
+        V = texcoords.y * 10 - pow(tempoDec,2)/200;
         Kd = texture(TextureImage0, vec2(U,V)).rgb;
 
         color.rgb = Kd * (lambert+1.0)+phong_specular_term+(ambient_term*0.25);
@@ -153,7 +157,7 @@ void main()
         vec3 Ia = vec3(0.87,0,0.42);
         vec3 Ka = vec3(0.2,0.2,0.2);
         vec3 ambient_term = Ka*Ia;
-        color.rgb = Kd*(lambert) + phong_specular_term;
+        color.rgb = Kd*(lambert+1) + phong_specular_term+(ambient_term*0.25);
     }
     else if( object_id == POLICE )
     {
@@ -162,7 +166,7 @@ void main()
 
         Kd = texture(TextureImage6, vec2(U,V)).rgb;
         float lambert = max(0,dot(n,l));
-        color.rgb = Kd * (lambert + 1);
+        color.rgb = Kd * (lambert + 1)+phong_specular_term;
     }
     else if( object_id == POLICE )
     {
@@ -171,7 +175,7 @@ void main()
 
         Kd = texture(TextureImage6, vec2(U,V)).rgb;
         float lambert = max(0,dot(n,l));
-        color.rgb = Kd * (lambert + 1);
+        color.rgb = Kd * (lambert + 0.01)/10+phong_specular_term;
     }
     else if( object_id == FERRARI )
     {
@@ -180,9 +184,24 @@ void main()
 
         Kd = texture(TextureImage8, vec2(U,V)).rgb;
         float lambert = max(0,dot(n,l));
-        color.rgb = Kd * (lambert + 1);
+        color.rgb = Kd * (lambert + 1)+phong_specular_term;
     }
+    else if(object_id == INTERFACE_INICIAL)
+    {
+        U = texcoords.x;
+        V = texcoords.y;
 
+        Kd = texture(TextureImage9, vec2(U,V)).rgb;
+        color.rgb = Kd;
+    }
+    else if(object_id == MORTE)
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+        Kd = texture(TextureImage10, vec2(U,V)).rgb;
+        color.rgb = Kd;
+    }
     else // Objeto desconhecido = preto
     {
         Kd = vec3(0.0,0.0,0.0);
