@@ -266,10 +266,10 @@ float ang_rotation = 0.0f;
 
 float speed=1;
 
-bool ended=false;
+bool ended=true;
 bool canHit=true;
 float highscore;
-
+bool interface = true;
 float tempoDecorrido=0;
 float tempoDec;
 
@@ -370,6 +370,8 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/car_police_texture.png"); // TextureImage6
     LoadTextureImage("../../data/car_chevetao_texture.png"); // TextureImage7
     LoadTextureImage("../../data/car_ferrari_texture.png"); // TextureImage8
+    LoadTextureImage("../../data/interface_inicial_texture.png"); // TextureImage9
+    LoadTextureImage("../../data/morte.png"); // TextureImage10
     // Construímos a representação de objetos geométricos através de malhas de triângulos
 
     ObjModel backmodel("../../data/back.obj");
@@ -411,6 +413,14 @@ int main(int argc, char* argv[])
     ObjModel carchevetaomodel("../../data/chevetaoDosGuri.obj");
     ComputeNormals(&carchevetaomodel);
     BuildTrianglesAndAddToVirtualScene(&carchevetaomodel);
+
+    ObjModel interfaceinicialmodel("../../data/interface_inicial.obj");
+    ComputeNormals(&interfaceinicialmodel);
+    BuildTrianglesAndAddToVirtualScene(&interfaceinicialmodel);
+
+    ObjModel mortemodel("../../data/morte.obj");
+    ComputeNormals(&mortemodel);
+    BuildTrianglesAndAddToVirtualScene(&mortemodel);
 
     if ( argc > 1 )
     {
@@ -456,49 +466,37 @@ int main(int argc, char* argv[])
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
     {
-        // Tempo de jogo
-       // if (init)
-      //  {
-            time_ = (float)glfwGetTime();
-            time_span = time_ - time_past;
-            time_past = time_;
-       // }
-
-       if(g_wKeyPressed&&reset)
-       {
-           tempoDecorrido= time_past;
-           printf("\n%f",tempoDec);
-           reset=false;
-       }
 
 
-      // printf("\n%f",tempoDecorrido);
+        char buffer[80];
+        float pad = TextRendering_LineHeight(window);
 
-       if(init)
-       {
-           float tempoAtual=(float)glfwGetTime();
-           tempoDec=tempoAtual-tempoDecorrido;
-           printf("\n%f",tempoDec);
-       }
+        time_ = (float)glfwGetTime();
+        time_span = time_ - time_past;
+        time_past = time_;
 
+       if(g_wKeyPressed&&ended){
+        tempoDecorrido= time_past;
+        printf("\n%f",tempoDec);
+       // reset=false;
+        }
 
-    //   printf("\n%f",tempoDec);
+       if(init){
+        float tempoAtual=(float)glfwGetTime();
+        tempoDec=tempoAtual-tempoDecorrido;
+        printf("\n%f",tempoDec);
+        g_UsePerspectiveProjection = true;
+        score=tempoDec*17;
+        snprintf(buffer, 80, "SCORE: %.f", score);
+        }
 
+       else{
+        g_UsePerspectiveProjection = false;}
 
-      // printf("\n%f",tempoDecorrido);
-
-       if(ended&&init)
-       {
-           //x_z_position();
-           ended=false;
-           Collide=false;
-           canHit=true;
-       }
-
-       if(Collide){
-        time_span=0;
-        ended=true;
-       }
+       if(ended&&init){
+        ended=false;
+        Collide=false;
+        canHit=true;}
 
         // Aqui executamos as operações de renderização
 
@@ -551,7 +549,7 @@ int main(int argc, char* argv[])
 
         // Note que, no sistema de coordenadas da câmera, os planos near e far
         // estão no sentido negativo! Veja slides 176-204 do documento Aula_09_Projecoes.pdf.
-        float nearplane = -1.1f;  // Posição do "near plane"
+        float nearplane = -0.1f;  // Posição do "near plane"
         float farplane  = -150.0f; // Posição do "far plane"
 
         if (g_UsePerspectiveProjection)
@@ -583,7 +581,7 @@ int main(int argc, char* argv[])
         glm::mat4 modelbandidao = Matrix_Identity();
         glm::mat4 modelferrari = Matrix_Identity();
         glm::mat4 modelchevetao = Matrix_Identity();
-
+        glm::mat4 modelinterface = Matrix_Identity();
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
         // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
         // efetivamente aplicadas em todos os pontos.
@@ -591,16 +589,39 @@ int main(int argc, char* argv[])
         glUniformMatrix4fv(g_projection_uniform , 1 , GL_FALSE , glm::value_ptr(projection));
         glUniform1f(g_time_past_uniform, tempoDec);
 
-        #define PLANE       0
-        #define CHEVETAO    1
-        #define BACK        2
-        #define LEFT        3
-        #define RIGHT       4
-        #define CAR         5
-        #define BANDIDAO    6
-        #define POLICE      7
-        #define FERRARI     8
+        #define PLANE             0
+        #define CHEVETAO          1
+        #define BACK              2
+        #define LEFT              3
+        #define RIGHT             4
+        #define CAR               5
+        #define BANDIDAO          6
+        #define POLICE            7
+        #define FERRARI           8
+        #define INTERFACE_INICIAL 9
+        #define MORTE             10
 
+            if (interface){
+            modelinterface = Matrix_Translate(0.0f,-0.2f,1.0f)
+                    * Matrix_Scale(2.8f,2.3f,0.0f)
+                    * Matrix_Rotate_Z(3.14)
+                    * Matrix_Rotate_X(-1.57);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelinterface));
+            glUniform1i(g_object_id_uniform, INTERFACE_INICIAL);
+            DrawVirtualObject("the_interfaceinicial");
+            }
+            else if(ended)
+            {
+               modelinterface = Matrix_Translate(0.0f,-0.2f,1.0f)
+                    * Matrix_Scale(2.8f,2.3f,0.0f)
+                    * Matrix_Rotate_Z(3.14)
+                    * Matrix_Rotate_X(-1.57);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelinterface));
+            glUniform1i(g_object_id_uniform, MORTE);
+            DrawVirtualObject("the_morte");
+            }
+            else
+            {
             {
             // Desenhamos o modelo do plano
             model = Matrix_Translate(0.0f,8.0f,100.0f)
@@ -647,7 +668,7 @@ int main(int argc, char* argv[])
                 glUniform1i(g_object_id_uniform, CAR);
                 DrawVirtualObject("the_car");
             }
-
+            }
                 // Assume that "carmodel" is an object that contains bbox_min and bbox_max values
             glm::vec3 bbox_min = g_VirtualScene["the_car"].bbox_min;
             glm::vec3 bbox_max = g_VirtualScene["the_car"].bbox_max;
@@ -686,9 +707,8 @@ int main(int argc, char* argv[])
                     glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
                     glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
-                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)&&canHit){
+                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
                Collide=true;
-               canHit=false;
                 printf("BATEU!!");}}
 
 
@@ -720,9 +740,8 @@ int main(int argc, char* argv[])
                     glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
                     glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
-                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)&&canHit){
+                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
                Collide=true;
-               canHit=false;
                 printf("BATEU!!");}}
 
 
@@ -750,9 +769,8 @@ int main(int argc, char* argv[])
                 glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
                 glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
-            if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)&&canHit){
+            if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
                 Collide=true;
-                canHit=false;
                 printf("BATEU!!");}}
 
 
@@ -783,46 +801,26 @@ int main(int argc, char* argv[])
                     glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
                     glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
-                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)&&canHit){
+                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
                Collide=true;
-               canHit=false;
                 printf("BATEU!!");}}
 
-        float pad = TextRendering_LineHeight(window);
 
 
       if(Collide){
-            init=false;
-            speed=1;
-        }
-
-        if(!init&&g_wKeyPressed){
-                z_car_position=-5;
-                x_z_position();
-        g_wKeyPressed=false;
-            reset=true;}
+        init=false;
+        ended=true;
+        time_span=0;
+        speed=1;
+        z_car_position=-5;
+        x_z_position();}
 
 
-
-        char buffer[80];
-       if(!init){
-        score=0;}
-      //  reset=false;}
-       else{
-        score+=tempoDec/175;}
-        snprintf(buffer, 80, "SCORE: %f", score);
-
-
-
-      //  float pad = TextRendering_LineHeight(window);
+        if(ended)
+        TextRendering_PrintString(window, buffer, -1.0f+pad,+0.82+pad, 2.0f);
+        else
         TextRendering_PrintString(window, buffer, -1.0f+pad,+0.82+pad, 2.0f);
 
-        // Imprimimos na tela os ângulos de Euler que controlam a rotação do
-        // terceiro cubo.
-     //   TextRendering_ShowEulerAngles(window);
-
-        // Imprimimos na informação sobre a matriz de projeção sendo utilizada.
-        TextRendering_ShowProjection(window);
 
         // Imprimimos na tela informação sobre o número de quadros renderizados
         // por segundo (frames per second).
@@ -919,12 +917,6 @@ glm::vec3 x_z_position()
                 break;
         }
     }}
-
-  //  printf("%d",n_obstacles);
-
-   //std::vector<glm::vec3> arrayOfPositions;
-
-//    return arrayOfPositions;
 }
 
 void update_rotation()
@@ -949,33 +941,19 @@ void update_rotation()
             ang_rotation-=8.0f*time_span;
         if(ang_rotation<0.0f)
             ang_rotation+=8.0f*time_span;}}
-
-   /* if(g_dKeyPressed){
-        if(ang_rotation>-0.5f)
-        ang_rotation-=10.0f*time_span;
-        else
-            ang_rotation=ang_rotation;}*/
-
-   /* else
-        if(ang_rotation!=0.0f){
-        ang_rotation+=10.0f*time_span;
-        if(ang_rotation<=0)
-            ang_rotation=0.0f;
-    }*/
 }
 
 // Função que atualiza a posição da câmera de acordo com a tecla pressionada, utilizando o tempo decorrido para calcular a atualização da posição
 glm::vec4 Update_Camera_Position(glm::vec4 camera_position, glm::vec4 camera_view_vector, glm::vec4 camera_right_vector)
 {
     float old_car_pos = x_car_position;
-    speed+=time_span;
 
     glm::vec4 new_camera_position = camera_position;
 
     if(init){
       //  new_camera_position = new_camera_position + camera_view_vector * abs(time_span*1.5f *log(time_past));
        // z_car_position+= camera_view_vector.z * abs(time_span*1.5f*log(time_past));
-       z_car_position+= camera_view_vector.z * (time_span/10) * (speed);
+       z_car_position+= camera_view_vector.z * (time_span/8) * (tempoDec);
         started=true;
         }
 
@@ -1145,6 +1123,7 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage7"), 7);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage8"), 8);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage9"), 9);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage10"), 10);
     glUseProgram(0);
 }
 
@@ -1769,6 +1748,8 @@ void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mod)
 
     // Se o usuário pressionar a tecla W, a câmera se moverá para frente.
     if (key == GLFW_KEY_W && action == GLFW_PRESS){
+        g_UsePerspectiveProjection = true;
+        interface = false;
         g_wKeyPressed = true;
         init = true;}
 
