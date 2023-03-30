@@ -14,9 +14,15 @@ uniform sampler2D TextureImage0;
 uniform sampler2D TextureImage1;
 uniform sampler2D TextureImage2;
 uniform sampler2D TextureImage3;
-uniform sampler2D TextureImage4;
-uniform sampler2D TextureImage5;
 
+uniform int object_id;
+uniform float time_past;
+uniform float tempoDec;
+
+#define PLANE             0
+#define BACK              2
+#define LEFT              3
+#define RIGHT             4
 // Atributos de vértice que serão gerados como saída ("out") pelo Vertex Shader.
 // ** Estes serão interpolados pelo rasterizador! ** gerando, assim, valores
 // para cada fragmento, os quais serão recebidos como entrada pelo Fragment
@@ -29,45 +35,48 @@ out vec3 vexColor;
 
 void main()
 {
-    // A variável gl_Position define a posição final de cada vértice
-    // OBRIGATORIAMENTE em "normalized device coordinates" (NDC), onde cada
-    // coeficiente estará entre -1 e 1 após divisão por w.
-    // Veja {+NDC2+}.
-    //
-    // O código em "main.cpp" define os vértices dos modelos em coordenadas
-    // locais de cada modelo (array model_coefficients). Abaixo, utilizamos
-    // operações de modelagem, definição da câmera, e projeção, para computar
-    // as coordenadas finais em NDC (variável gl_Position). Após a execução
-    // deste Vertex Shader, a placa de vídeo (GPU) fará a divisão por W. Veja
-    // slides 41-67 e 69-86 do documento Aula_09_Projecoes.pdf.
+
+    position_world = model * model_coefficients;
+
+    normal = inverse(transpose(model)) * normal_coefficients;
+    // Coordenadas de textura obtidas do arquivo OBJ (se existirem!)
+    texcoords = texture_coefficients;
 
     gl_Position = projection * view * model * model_coefficients;
 
-    // Como as variáveis acima  (tipo vec4) são vetores com 4 coeficientes,
-    // também é possível acessar e modificar cada coeficiente de maneira
-    // independente. Esses são indexados pelos nomes x, y, z, e w (nessa
-    // ordem, isto é, 'x' é o primeiro coeficiente, 'y' é o segundo, ...):
-    //
-    //     gl_Position.x = model_coefficients.x;
-    //     gl_Position.y = model_coefficients.y;
-    //     gl_Position.z = model_coefficients.z;
-    //     gl_Position.w = model_coefficients.w;
-    //
 
-    // Agora definimos outros atributos dos vértices que serão interpolados pelo
-    // rasterizador para gerar atributos únicos para cada fragmento gerado.
+    // Normal do fragmento atual, interpolada pelo rasterizador a partir das
+    // normais de cada vértice.
+    vec4 n = normalize(normal);
 
-    // Posição do vértice atual no sistema de coordenadas global (World).
-    position_world = model * model_coefficients;
+    // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
+    vec4 l = normalize(vec4(2.5, 1.5, 1.0, 0.0));
 
-    // Posição do vértice atual no sistema de coordenadas local do modelo.
-    position_model = model_coefficients;
+    // Coordenadas de textura U e V
+    vec3 Kd = vec3(1.0f, 1.0f, 1.0f);
+    vec3 I = vec3(1.0,1.0,1.0);
 
-    // Normal do vértice atual no sistema de coordenadas global (World).
-    // Veja slides 123-151 do documento Aula_07_Transformacoes_Geometricas_3D.pdf.
-    normal = inverse(transpose(model)) * normal_coefficients;
-    normal.w = 0.0;
-    // Coordenadas de textura obtidas do arquivo OBJ (se existirem!)
-    texcoords = texture_coefficients;
+    vec3 lambert = Kd*I* max(0,dot(n,l));
+
+        if ( object_id == PLANE )
+        {
+            vexColor.rgb = lambert;
+        }
+        else if ( object_id == BACK )
+        {
+            vexColor.rgb = lambert;
+        }
+        else if ( object_id == LEFT )
+        {
+            vexColor.rgb = lambert;
+        }
+        else if ( object_id == RIGHT )
+        {
+            vexColor.rgb = lambert;
+        }
+        else
+        {
+            vexColor.rgb = pow(vexColor.rgb, vec3(1.0,1.0,1.0)/2.2);
+        }
 }
 
