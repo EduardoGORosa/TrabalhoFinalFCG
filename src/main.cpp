@@ -121,7 +121,8 @@ GLuint LoadShader_Vertex(const char* filename);   // Carrega um vertex shader
 GLuint LoadShader_Fragment(const char* filename); // Carrega um fragment shader
 void LoadShader(const char* filename, GLuint shader_id); // Função utilizada pelas duas acima
 GLuint CreateGpuProgram(GLuint vertex_shader_id, GLuint fragment_shader_id); // Cria um programa de GPU
-void PrintObjModelInfo(ObjModel*); // Função para debugging
+void PrintObjModelInfo(ObjModel*);
+void create_tree_positions();// Função para debugging
 
 // Declaração de funções auxiliares para renderizar texto dentro da janela
 // OpenGL. Estas funções estão definidas no arquivo "textrendering.cpp".
@@ -164,6 +165,8 @@ std::vector<glm::vec3> arrayOfPositions1;
 std::vector<glm::vec3> arrayOfPositions2;
 std::vector<glm::vec3> arrayOfPositions3;
 std::vector<glm::vec3> arrayOfPositions4;
+
+std::vector <glm::vec2> tree_position;
 
 float score=0;
 
@@ -316,7 +319,7 @@ int main(int argc, char* argv[])
     // Criamos uma janela do sistema operacional, com 800 colunas e 600 linhas
     // de pixels, e com título "INF01047 ...".
     GLFWwindow* window;
-    window = glfwCreateWindow(800, 600, "INF01047 - Seu Cartao - Seu Nome", NULL, NULL);
+    window = glfwCreateWindow(800, 600, "Eduardo Rosa & Fernando Sulzbach", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -372,6 +375,8 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/car_ferrari_texture.png"); // TextureImage8
     LoadTextureImage("../../data/interface_inicial_texture.png"); // TextureImage9
     LoadTextureImage("../../data/morte.png"); // TextureImage10
+    LoadTextureImage("../../data/grama_texture.png"); // TextureImage11
+    LoadTextureImage("../../data/arvore_texture.png"); // TextureImage12
     // Construímos a representação de objetos geométricos através de malhas de triângulos
 
     ObjModel backmodel("../../data/back.obj");
@@ -422,6 +427,15 @@ int main(int argc, char* argv[])
     ComputeNormals(&mortemodel);
     BuildTrianglesAndAddToVirtualScene(&mortemodel);
 
+    ObjModel modelgrama("../../data/grama.obj");
+    ComputeNormals(&modelgrama);
+    BuildTrianglesAndAddToVirtualScene(&modelgrama);
+
+    ObjModel modelarvore("../../data/arvore.obj");
+    ComputeNormals(&modelarvore);
+    BuildTrianglesAndAddToVirtualScene(&modelarvore);
+
+
     if ( argc > 1 )
     {
         ObjModel model(argv[1]);
@@ -462,6 +476,8 @@ int main(int argc, char* argv[])
 
       x_z_position();
 
+      create_tree_positions();
+
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
@@ -477,14 +493,14 @@ int main(int argc, char* argv[])
 
        if(g_wKeyPressed&&ended){
         tempoDecorrido= time_past;
-        printf("\n%f",tempoDec);
+       // printf("\n%f",tempoDec);
        // reset=false;
         }
 
        if(init){
         float tempoAtual=(float)glfwGetTime();
         tempoDec=tempoAtual-tempoDecorrido;
-        printf("\n%f",tempoDec);
+       // printf("\n%f",tempoDec);
         g_UsePerspectiveProjection = true;
         score=tempoDec*17;
         snprintf(buffer, 80, "SCORE: %.f", score);
@@ -582,6 +598,9 @@ int main(int argc, char* argv[])
         glm::mat4 modelferrari = Matrix_Identity();
         glm::mat4 modelchevetao = Matrix_Identity();
         glm::mat4 modelinterface = Matrix_Identity();
+        glm::mat4 modelgrama = Matrix_Identity();
+        glm::mat4 modelarvore = Matrix_Identity();
+
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
         // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
         // efetivamente aplicadas em todos os pontos.
@@ -600,6 +619,11 @@ int main(int argc, char* argv[])
         #define FERRARI           8
         #define INTERFACE_INICIAL 9
         #define MORTE             10
+        #define GRAMA             11
+        #define ARVORE            12
+
+
+
 
             if (interface){
             modelinterface = Matrix_Translate(0.0f,-0.2f,1.0f)
@@ -640,6 +664,25 @@ int main(int argc, char* argv[])
             glUniform1i(g_object_id_uniform, LEFT);
             DrawVirtualObject("the_left");
             }
+
+            {
+             modelgrama = Matrix_Translate(20.0f,-1.6f,50.0f)
+                    * Matrix_Scale(20.0f,0.0f,60.0f);
+                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelgrama));
+                glUniform1i(g_object_id_uniform, GRAMA);
+                DrawVirtualObject("the_grama");
+            }
+
+            {
+             modelgrama = Matrix_Translate(-20.0f,-1.6f,50.0f)
+                    * Matrix_Scale(20.0f,0.0f,60.0f);
+                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelgrama));
+                glUniform1i(g_object_id_uniform, GRAMA);
+                DrawVirtualObject("the_grama");
+            }
+
+
+
             {
             // Desenhamos o modelo do plano
             model = Matrix_Translate(-49.94f,8.0f,50.0f)
@@ -649,6 +692,33 @@ int main(int argc, char* argv[])
             glUniform1i(g_object_id_uniform, RIGHT);
             DrawVirtualObject("the_right");
             }
+
+            for(int i=0;i<20;i++){
+            float tree_aux = tree_position[i].x - pow(tempoDec,2)/12.5;
+            if(tree_aux<=-1.0f)
+                tree_position[i].x+=(5.0f*20);
+            modelarvore = Matrix_Translate(tree_position[i].y,-1.5f,tree_aux)
+                          * Matrix_Scale(0.06f, 0.06f, 0.06f)
+                          * Matrix_Rotate_Y(i);
+
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelarvore));
+            glUniform1i(g_object_id_uniform, ARVORE);
+            DrawVirtualObject("Simple_Tree_01");
+
+            modelarvore = Matrix_Translate(-tree_position[i].y,-1.5f,tree_aux)
+                          * Matrix_Scale(0.06f, 0.06f, 0.06f)
+                          * Matrix_Rotate_Y(i+1.5f);
+
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelarvore));
+            glUniform1i(g_object_id_uniform, ARVORE);
+            DrawVirtualObject("Simple_Tree_01");}
+
+
+
+
+
+
+
             {
             // Desenhamos o modelo do plano
             modelplane = Matrix_Translate(0.0f,-1.5f,11.0f)
@@ -709,7 +779,7 @@ int main(int argc, char* argv[])
 
                     if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
                Collide=true;
-                printf("BATEU!!");}}
+                }}
 
 
 
@@ -741,8 +811,7 @@ int main(int argc, char* argv[])
                     glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
                     if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
-               Collide=true;
-                printf("BATEU!!");}}
+               Collide=true;}}
 
 
 
@@ -770,8 +839,7 @@ int main(int argc, char* argv[])
                 glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
             if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
-                Collide=true;
-                printf("BATEU!!");}}
+                Collide=true;}}
 
 
         for(int i=0; i < arrayOfPositions4.size(); i++){
@@ -802,8 +870,7 @@ int main(int argc, char* argv[])
                     glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
                     if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
-               Collide=true;
-                printf("BATEU!!");}}
+               Collide=true;}}
 
 
 
@@ -813,7 +880,8 @@ int main(int argc, char* argv[])
         time_span=0;
         speed=1;
         z_car_position=-5;
-        x_z_position();}
+        x_z_position();
+        create_tree_positions();}
 
 
         if(ended)
@@ -864,6 +932,18 @@ bool bbcollision(glm::vec3 bbox_min1,glm::vec3 bbox_min2,glm::vec3 bbox_max1,glm
         bbox1.maxPoint.z >= bbox2.minPoint.z);*/
 
 }
+
+void create_tree_positions()
+{
+    tree_position.clear();
+    for(int i=0;i<20;i++){
+        int random_tree=randnum(engine)+3;
+        glm::vec2 pos((5.0f*i),random_tree);
+        tree_position.push_back(pos);
+    }
+
+}
+
 
 glm::vec3 x_z_position()
 {
@@ -1009,8 +1089,8 @@ void LoadTextureImage(const char* filename)
 
 
     // Veja slides 95-96 do documento Aula_20_Mapeamento_de_Texturas.pdf
-    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glSamplerParameteri(sampler_id, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     // Parâmetros de amostragem da textura.
     glSamplerParameteri(sampler_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -1124,6 +1204,8 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage8"), 8);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage9"), 9);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage10"), 10);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage11"), 11);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage12"), 12);
     glUseProgram(0);
 }
 

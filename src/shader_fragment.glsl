@@ -30,6 +30,10 @@ uniform mat4 projection;
 #define FERRARI           8
 #define INTERFACE_INICIAL 9
 #define MORTE             10
+#define GRAMA             11
+#define ARVORE            12
+
+
 uniform int object_id;
 uniform float time_past;
 uniform float tempoDec;
@@ -49,6 +53,8 @@ uniform sampler2D TextureImage7;
 uniform sampler2D TextureImage8;
 uniform sampler2D TextureImage9;
 uniform sampler2D TextureImage10;
+uniform sampler2D TextureImage11;
+uniform sampler2D TextureImage12;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -97,6 +103,28 @@ void main()
         vec3 Ia = vec3(0.0,0.0,0.0);
         vec3 Ka = vec3(0.5,0.2,0.2);
         vec3 ambient_term = Ka*Ia;
+
+
+
+    if( object_id == GRAMA )
+    {
+
+        U = texcoords.x*7;
+        V = texcoords.y*7 - pow(tempoDec,2)/200;
+        Kd = texture(TextureImage11, vec2(U,V)).rgb;
+
+        color.rgb = Kd * (lambert+0.7) + phong_specular_term +ambient_term;
+    }
+
+    if( object_id == ARVORE )
+    {
+
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage12, vec2(U,V)).rgb;
+
+        color.rgb = Kd * (lambert+0.7)+ambient_term;// + phong_specular_term +ambient_term;
+    }
 
 
     if( object_id == CAR )
