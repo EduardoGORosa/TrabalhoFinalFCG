@@ -1597,7 +1597,7 @@
 	<fstream>
 	<sstream>
 
-1680305660 source:c:\users\fsulz\desktop\versaodefinitiva2\trabalhofinalfcg\src\main.cpp
+1680306337 source:c:\users\fsulz\desktop\versaodefinitiva2\trabalhofinalfcg\src\main.cpp
 	<cmath>
 	<cstdio>
 	<cstdlib>
@@ -1889,4 +1889,11 @@
 	<glm/mat4x4.hpp>
 	<glm/vec4.hpp>
 	<glm/gtc/matrix_transform.hpp>
+
+1680306392 source:c:\users\fsulz\desktop\versaodefinitiva2\trabalhofinalfcg\src\collisions.cpp
+	<string>
+	<glad/glad.h>
+	<GLFW/glfw3.h>
+	<glm/mat4x4.hpp>
+	<glm/vec4.hpp>
 

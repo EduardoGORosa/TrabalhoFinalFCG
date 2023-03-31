@@ -115,7 +115,7 @@ void main()
         V = texcoords.y*7 - pow(tempoDec,2)/200;
         Kd = texture(TextureImage11, vec2(U,V)).rgb;
 
-        color.rgb = Kd * (lambert+0.7) + phong_specular_term +ambient_term;
+        color.rgb = Kd * (lambert+0.7) + phong_specular_term;
     }
 
     if( object_id == AVIAO )
@@ -162,7 +162,7 @@ void main()
         V = texcoords.y * 10 - pow(tempoDec,2)/200;
         Kd = texture(TextureImage0, vec2(U,V)).rgb;
 
-        color.rgb = Kd * (lambert+1.0)+phong_specular_term+(ambient_term*0.25);
+        color.rgb = Kd * (lambert+1.0);
     }
     else if ( object_id == BACK )
     {
@@ -170,7 +170,7 @@ void main()
         V = texcoords.y;
         Kd = texture(TextureImage1, vec2(U,V)).rgb;
 
-        color.rgb = Kd * (lambert + 1)+(ambient_term*0.25);
+        color.rgb = Kd * (lambert + 1);
     }
     else if ( object_id == LEFT )
     {
@@ -178,14 +178,14 @@ void main()
         V = texcoords.y;
         Kd = texture(TextureImage3, vec2(U,V)).rgb;
 
-        color.rgb = Kd * (lambert + 1)+(ambient_term*0.25);
+        color.rgb = Kd * (lambert + 1);
     }
     else if ( object_id == RIGHT )
     {
         U = texcoords.x;
         V = texcoords.y;
         Kd = texture(TextureImage2, vec2(U,V)).rgb;
-        color.rgb = Kd * (lambert + 1)+(ambient_term*0.25);
+        color.rgb = Kd * (lambert + 1);
     }
     else if( object_id == BANDIDAO )
     {
