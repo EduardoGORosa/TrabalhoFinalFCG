@@ -12,7 +12,7 @@ in vec4 position_model;
 
 // Coordenadas de textura obtidas do arquivo OBJ (se existirem!)
 in vec2 texcoords;
-in vec3 vexColor;
+
 // Matrizes computadas no código C++ e enviadas para a GPU
 uniform mat4 model;
 uniform mat4 view;
@@ -32,6 +32,7 @@ uniform mat4 projection;
 #define MORTE             10
 #define GRAMA             11
 #define ARVORE            12
+#define AVIAO             13
 
 
 uniform int object_id;
@@ -55,6 +56,7 @@ uniform sampler2D TextureImage9;
 uniform sampler2D TextureImage10;
 uniform sampler2D TextureImage11;
 uniform sampler2D TextureImage12;
+uniform sampler2D TextureImage13;
 
 // O valor de saída ("out") de um Fragment Shader é a cor final do fragmento.
 out vec4 color;
@@ -113,6 +115,16 @@ void main()
         V = texcoords.y*7 - pow(tempoDec,2)/200;
         Kd = texture(TextureImage11, vec2(U,V)).rgb;
 
+        color.rgb = Kd * (lambert+0.7) + phong_specular_term;
+    }
+
+    if( object_id == AVIAO )
+    {
+
+        U = texcoords.x;
+        V = texcoords.y;
+        Kd = texture(TextureImage13, vec2(U,V)).rgb;
+
         color.rgb = Kd * (lambert+0.7) + phong_specular_term +ambient_term;
     }
 
@@ -150,7 +162,7 @@ void main()
         V = texcoords.y * 10 - pow(tempoDec,2)/200;
         Kd = texture(TextureImage0, vec2(U,V)).rgb;
 
-        color.rgb = vexColor;
+        color.rgb = Kd * (lambert+1.0);
     }
     else if ( object_id == BACK )
     {
@@ -158,7 +170,7 @@ void main()
         V = texcoords.y;
         Kd = texture(TextureImage1, vec2(U,V)).rgb;
 
-        color.rgb = Kd * vexColor;
+        color.rgb = Kd * (lambert + 1);
     }
     else if ( object_id == LEFT )
     {
@@ -166,14 +178,14 @@ void main()
         V = texcoords.y;
         Kd = texture(TextureImage3, vec2(U,V)).rgb;
 
-        color.rgb = Kd * vexColor;
+        color.rgb = Kd * (lambert + 1);
     }
     else if ( object_id == RIGHT )
     {
         U = texcoords.x;
         V = texcoords.y;
         Kd = texture(TextureImage2, vec2(U,V)).rgb;
-        color.rgb = Kd * vexColor;
+        color.rgb = Kd * (lambert + 1);
     }
     else if( object_id == BANDIDAO )
     {
@@ -195,6 +207,15 @@ void main()
         Kd = texture(TextureImage6, vec2(U,V)).rgb;
         float lambert = max(0,dot(n,l));
         color.rgb = Kd * (lambert + 1)+phong_specular_term;
+    }
+    else if( object_id == POLICE )
+    {
+        U = texcoords.x;
+        V = texcoords.y;
+
+        Kd = texture(TextureImage6, vec2(U,V)).rgb;
+        float lambert = max(0,dot(n,l));
+        color.rgb = Kd * (lambert + 0.01)/10+phong_specular_term;
     }
     else if( object_id == FERRARI )
     {

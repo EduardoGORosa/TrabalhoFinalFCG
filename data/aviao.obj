@@ -1,7 +1,7 @@
 # Blender 3.4.1
 # www.blender.org
 mtllib aviao.mtl
-o Cylinder.006
+o the_aviao
 v -0.345528 -1.721570 -3.002461
 v -0.217203 -1.721570 -3.002461
 v -0.345528 -1.810377 -2.985303

@@ -19,6 +19,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+
 // Headers abaixo são específicos de C++
 #include <map>
 #include <stack>
@@ -30,8 +31,9 @@
 #include <stdexcept>
 #include <algorithm>
 #include <random>
-#include <math.h>       /* log */
-#include <time.h>//necessário p/ função time()
+#include <math.h>
+#include <time.h>
+
 // Headers das bibliotecas OpenGL
 #include <glad/glad.h>   // Criação de contexto OpenGL 3.3
 #include <GLFW/glfw3.h>  // Criação de janelas do sistema operacional
@@ -122,7 +124,7 @@ GLuint LoadShader_Fragment(const char* filename); // Carrega um fragment shader
 void LoadShader(const char* filename, GLuint shader_id); // Função utilizada pelas duas acima
 GLuint CreateGpuProgram(GLuint vertex_shader_id, GLuint fragment_shader_id); // Cria um programa de GPU
 void PrintObjModelInfo(ObjModel*);
-void create_tree_positions();// Função para debugging
+void create_tree_positions();
 
 // Declaração de funções auxiliares para renderizar texto dentro da janela
 // OpenGL. Estas funções estão definidas no arquivo "textrendering.cpp".
@@ -159,7 +161,9 @@ void update_rotation();
 
 bool bbcollision(glm::vec3 bbox_min1,glm::vec3 bbox_min2,glm::vec3 bbox_max1,glm::vec3 bbox_max2);
 
-glm::vec3 x_z_position();
+void x_z_position();
+
+glm::vec4 Bezier(std::vector<glm::vec4> curvaBezier, int grau, float tempoDec);
 
 std::vector<glm::vec3> arrayOfPositions1;
 std::vector<glm::vec3> arrayOfPositions2;
@@ -276,6 +280,8 @@ bool interface = true;
 float tempoDecorrido=0;
 float tempoDec;
 
+std::vector<glm::vec4> curvaBezier;
+
 std::random_device seeder;
 std::mt19937 engine(time(NULL));
 std::uniform_int_distribution<int> g_obstacles(0,2);
@@ -295,10 +301,10 @@ int main(int argc, char* argv[])
         std::exit(EXIT_FAILURE);
     }
 
-
-
-
-    //x_z_position();
+    curvaBezier.push_back(glm::vec4(-30.0f,10.0f,10.0f,1.0f));
+    curvaBezier.push_back(glm::vec4(-10.0f,8.0f,50.0f,1.0f));
+    curvaBezier.push_back(glm::vec4(10.0f,10.0f,50.0f,1.0f));
+    curvaBezier.push_back(glm::vec4(30.0f,8.0f,10.0f,1.0f));
 
 
     // Definimos o callback para impressão de erros da GLFW no terminal
@@ -377,6 +383,7 @@ int main(int argc, char* argv[])
     LoadTextureImage("../../data/morte.png"); // TextureImage10
     LoadTextureImage("../../data/grama_texture.png"); // TextureImage11
     LoadTextureImage("../../data/arvore_texture.png"); // TextureImage12
+    LoadTextureImage("../../data/aviao_texture.png"); // TextureImage13
     // Construímos a representação de objetos geométricos através de malhas de triângulos
 
     ObjModel backmodel("../../data/back.obj");
@@ -427,13 +434,17 @@ int main(int argc, char* argv[])
     ComputeNormals(&mortemodel);
     BuildTrianglesAndAddToVirtualScene(&mortemodel);
 
-    ObjModel modelgrama("../../data/grama.obj");
-    ComputeNormals(&modelgrama);
-    BuildTrianglesAndAddToVirtualScene(&modelgrama);
+    ObjModel modelplane("../../data/grama.obj");
+    ComputeNormals(&modelplane);
+    BuildTrianglesAndAddToVirtualScene(&modelplane);
 
     ObjModel modelarvore("../../data/arvore.obj");
     ComputeNormals(&modelarvore);
     BuildTrianglesAndAddToVirtualScene(&modelarvore);
+
+    ObjModel modelaviao("../../data/aviao.obj");
+    ComputeNormals(&modelaviao);
+    BuildTrianglesAndAddToVirtualScene(&modelaviao);
 
 
     if ( argc > 1 )
@@ -454,30 +465,22 @@ int main(int argc, char* argv[])
     glFrontFace(GL_CCW);
 
 
-
+    // Redução do tamanho da Bounding Box
     glm::vec3 bbox_min = g_VirtualScene["the_car"].bbox_min;
     glm::vec3 bbox_max = g_VirtualScene["the_car"].bbox_max;
 
-        // Calcule a metade do tamanho original da bounding box
     glm::vec3 half_size = (bbox_max - bbox_min) * 0.5f;
 
-        // Reduza a bounding box em 20% em cada dimensão
     half_size *= 0.5f;
 
     g_VirtualScene["the_car"].bbox_min+= half_size;
     g_VirtualScene["the_car"].bbox_max-= half_size;
 
-        // Atualize os vetores bbox_min e bbox_max
-       // bbox_min += half_size;
-      //  bbox_max -= half_size;
+    // Define posição dos carros (obstáculos)
+    x_z_position();
 
-     // float tempoDecorrido=0;
-
-
-      x_z_position();
-
-      create_tree_positions();
-
+    // Define posição das árvores
+    create_tree_positions();
 
     // Ficamos em um loop infinito, renderizando, até que o usuário feche a janela
     while (!glfwWindowShouldClose(window))
@@ -491,16 +494,15 @@ int main(int argc, char* argv[])
         time_span = time_ - time_past;
         time_past = time_;
 
+        //Para resetar tempo Decorrido
        if(g_wKeyPressed&&ended){
         tempoDecorrido= time_past;
-       // printf("\n%f",tempoDec);
-       // reset=false;
         }
 
+        // Inicialização
        if(init){
         float tempoAtual=(float)glfwGetTime();
         tempoDec=tempoAtual-tempoDecorrido;
-       // printf("\n%f",tempoDec);
         g_UsePerspectiveProjection = true;
         score=tempoDec*17;
         snprintf(buffer, 80, "SCORE: %.f", score);
@@ -543,16 +545,15 @@ int main(int argc, char* argv[])
 
         // Abaixo definimos as varáveis que efetivamente definem a câmera virtual.
         // Veja slides 195-227 e 229-234 do documento Aula_08_Sistemas_de_Coordenadas.pdf.
-        glm::vec4 cameraTarget =    glm::vec4(x,y,z,0.0f);
+        glm::vec4 cameraTarget        = glm::vec4(x,y,z,0.0f);
         glm::vec4 camera_position_c   = glm::vec4(x,y,z,0.0f); // Ponto "c", centro da câmera
-        glm::vec4 cameraOnEyesHeight =    glm::vec4(x,0.0f,z,0.0f);
-        glm::vec4 camera_lookat_l     = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
-        glm::vec4 camera_view_vector  = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
+        glm::vec4 cameraOnEyesHeight  = glm::vec4(x,0.0f,z,0.0f);
+       // glm::vec4 camera_lookat_l     = glm::vec4(0.0f,0.0f,0.0f,1.0f); // Ponto "l", para onde a câmera (look-at) estará sempre olhando
+       // glm::vec4 camera_view_vector  = camera_lookat_l - camera_position_c; // Vetor "view", sentido para onde a câmera está virada
         glm::vec4 camera_up_vector    = glm::vec4(0.0f,1.0f,0.0f,0.0f); // Vetor "up" fixado para apontar para o "céu" (eito Y global)
-       glm::vec4 cameraRight =     crossproduct(camera_up_vector,cameraTarget);
+       // glm::vec4 cameraRight         = crossproduct(camera_up_vector,cameraTarget);
         glm::vec4 camera_right_vector = crossproduct(camera_up_vector,camera_position_c); // Vetor que aponta para a "direita", criado através do produto vetorial do vetor up e o vetor view_camera
         camera_position               = Update_Camera_Position(camera_position, cameraOnEyesHeight, camera_right_vector); // Posição da camera, atualizada conforme a movimentação livre
-
 
 
         // Computamos a matriz "View" utilizando os parâmetros da câmera para
@@ -589,17 +590,12 @@ int main(int argc, char* argv[])
             projection = Matrix_Orthographic(l, r, b, t, nearplane, farplane);
         }
 
-        glm::mat4 model = Matrix_Identity();
         glm::mat4 modelcar = Matrix_Identity();
         glm::mat4 modelOp = Matrix_Identity();
         glm::mat4 modelplane = Matrix_Identity();
-        glm::mat4 modelpolice = Matrix_Identity();
-        glm::mat4 modelbandidao = Matrix_Identity();
-        glm::mat4 modelferrari = Matrix_Identity();
-        glm::mat4 modelchevetao = Matrix_Identity();
         glm::mat4 modelinterface = Matrix_Identity();
-        glm::mat4 modelgrama = Matrix_Identity();
         glm::mat4 modelarvore = Matrix_Identity();
+        glm::mat4 modelaviao = Matrix_Identity();
 
         // Enviamos as matrizes "view" e "projection" para a placa de vídeo
         // (GPU). Veja o arquivo "shader_vertex.glsl", onde estas são
@@ -621,209 +617,191 @@ int main(int argc, char* argv[])
         #define MORTE             10
         #define GRAMA             11
         #define ARVORE            12
+        #define AVIAO             13
 
 
-
-
-            if (interface){
+        if (interface){
+            //INTERFACE INICIAR
             modelinterface = Matrix_Translate(0.0f,-0.2f,1.0f)
-                    * Matrix_Scale(2.8f,2.3f,0.0f)
-                    * Matrix_Rotate_Z(3.14)
-                    * Matrix_Rotate_X(-1.57);
+                            * Matrix_Scale(2.8f,2.3f,0.0f)
+                            * Matrix_Rotate_Z(3.14)
+                            * Matrix_Rotate_X(-1.57);
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelinterface));
             glUniform1i(g_object_id_uniform, INTERFACE_INICIAL);
-            DrawVirtualObject("the_interfaceinicial");
-            }
-            else if(ended)
-            {
-               modelinterface = Matrix_Translate(0.0f,-0.2f,1.0f)
-                    * Matrix_Scale(2.8f,2.3f,0.0f)
-                    * Matrix_Rotate_Z(3.14)
-                    * Matrix_Rotate_X(-1.57);
+            DrawVirtualObject("the_interfaceinicial");}
+
+        else if(ended){
+            //INTERFACE DERROTA
+            modelinterface = Matrix_Translate(0.0f,-0.2f,1.0f)
+                            * Matrix_Scale(2.8f,2.3f,0.0f)
+                            * Matrix_Rotate_Z(3.14)
+                            * Matrix_Rotate_X(-1.57);
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelinterface));
             glUniform1i(g_object_id_uniform, MORTE);
-            DrawVirtualObject("the_morte");
-            }
-            else
-            {
-            {
-            // Desenhamos o modelo do plano
-            model = Matrix_Translate(0.0f,8.0f,100.0f)
+            DrawVirtualObject("the_morte");}
+        else{
+            //FUNDO
+            modelplane = Matrix_Translate(0.0f,8.0f,100.0f)
                     * Matrix_Scale(50.0f,50.0f,0.0f);
-            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelplane));
             glUniform1i(g_object_id_uniform, BACK);
             DrawVirtualObject("the_back");
-            }
 
-            {
-            // Desenhamos o modelo do plano
-            model = Matrix_Translate(50.0f,8.0f,50.0f)
+            glm::vec4 plane_pos=Bezier(curvaBezier,2,tempoDec/6);
+
+            //AVIAO
+            modelaviao = Matrix_Translate(plane_pos.x,plane_pos.y,plane_pos.z)
+                        * Matrix_Scale(0.4f,0.4f,0.4f)
+                        * Matrix_Rotate_Y(1.4f);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelaviao));
+            glUniform1i(g_object_id_uniform, AVIAO);
+            DrawVirtualObject("the_aviao");
+
+            //FUNDO ESQUERDA
+            modelplane = Matrix_Translate(50.0f,8.0f,50.0f)
                     * Matrix_Scale(0.0f,50.0f,50.0f)
                     * Matrix_Rotate_Y(1.57);
-            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelplane));
             glUniform1i(g_object_id_uniform, LEFT);
             DrawVirtualObject("the_left");
-            }
 
-            {
-             modelgrama = Matrix_Translate(20.0f,-1.6f,50.0f)
-                    * Matrix_Scale(20.0f,0.0f,60.0f);
-                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelgrama));
-                glUniform1i(g_object_id_uniform, GRAMA);
-                DrawVirtualObject("the_grama");
-            }
-
-            {
-             modelgrama = Matrix_Translate(-20.0f,-1.6f,50.0f)
-                    * Matrix_Scale(20.0f,0.0f,60.0f);
-                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelgrama));
-                glUniform1i(g_object_id_uniform, GRAMA);
-                DrawVirtualObject("the_grama");
-            }
+            //GRAMA ESQUERDA
+            modelplane = Matrix_Translate(20.0f,-1.6f,50.0f)
+                        * Matrix_Scale(20.0f,0.0f,60.0f);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelplane));
+            glUniform1i(g_object_id_uniform, GRAMA);
+            DrawVirtualObject("the_grama");
 
 
+            //GRAMA DIREITA
+            modelplane = Matrix_Translate(-20.0f,-1.6f,50.0f)
+                        * Matrix_Scale(20.0f,0.0f,60.0f);
+           glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelplane));
+           glUniform1i(g_object_id_uniform, GRAMA);
+           DrawVirtualObject("the_grama");
 
-            {
-            // Desenhamos o modelo do plano
-            model = Matrix_Translate(-49.94f,8.0f,50.0f)
+
+            //FUNDO DIREITA
+            modelplane = Matrix_Translate(-49.94f,8.0f,50.0f)
                     * Matrix_Scale(0.0f,50.0f,50.0f)
                     * Matrix_Rotate_Y(4.71);
-            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(model));
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelplane));
             glUniform1i(g_object_id_uniform, RIGHT);
             DrawVirtualObject("the_right");
-            }
 
+            //ÁRVORES
             for(int i=0;i<20;i++){
             float tree_aux = tree_position[i].x - pow(tempoDec,2)/12.5;
             if(tree_aux<=-1.0f)
                 tree_position[i].x+=(5.0f*20);
             modelarvore = Matrix_Translate(tree_position[i].y,-1.5f,tree_aux)
-                          * Matrix_Scale(0.06f, 0.06f, 0.06f)
-                          * Matrix_Rotate_Y(i);
+                            * Matrix_Scale(0.06f, 0.06f, 0.06f)
+                            * Matrix_Rotate_Y(i);
 
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelarvore));
             glUniform1i(g_object_id_uniform, ARVORE);
             DrawVirtualObject("Simple_Tree_01");
 
             modelarvore = Matrix_Translate(-tree_position[i].y,-1.5f,tree_aux)
-                          * Matrix_Scale(0.06f, 0.06f, 0.06f)
-                          * Matrix_Rotate_Y(i+1.5f);
+                            * Matrix_Scale(0.06f, 0.06f, 0.06f)
+                            * Matrix_Rotate_Y(i+1.5f);
 
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelarvore));
             glUniform1i(g_object_id_uniform, ARVORE);
             DrawVirtualObject("Simple_Tree_01");}
 
-
-
-
-
-
-
-            {
-            // Desenhamos o modelo do plano
+            //ESTRADA
             modelplane = Matrix_Translate(0.0f,-1.5f,11.0f)
                     * Matrix_Scale(2.0f,0.0f,100.0f);
             glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelplane));
             glUniform1i(g_object_id_uniform, PLANE);
             DrawVirtualObject("the_plane");
-            }
-            {
-                update_rotation();
 
-                    // Desenhamos o modelo do carro
-                modelcar = Matrix_Translate(x_car_position,-1.5f,3.0f)
-                          * Matrix_Scale(0.125f, 0.125f, 0.125f)
-                          * Matrix_Rotate_Y(ang_rotation);
-                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelcar));
-                glUniform1i(g_object_id_uniform, CAR);
-                DrawVirtualObject("the_car");
-            }
-            }
-                // Assume that "carmodel" is an object that contains bbox_min and bbox_max values
+            update_rotation();
+
+            //CARRO PROTAGONISTA
+            modelcar = Matrix_Translate(x_car_position,-1.5f,3.0f)
+                        * Matrix_Scale(0.125f, 0.125f, 0.125f)
+                        * Matrix_Rotate_Y(ang_rotation);
+            glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelcar));
+            glUniform1i(g_object_id_uniform, CAR);
+            DrawVirtualObject("the_car");
+
+            //BBOX CARRO
             glm::vec3 bbox_min = g_VirtualScene["the_car"].bbox_min;
             glm::vec3 bbox_max = g_VirtualScene["the_car"].bbox_max;
 
-        // Calculate the global coordinates of the bbox_min and bbox_max
-        glm::vec4 bbox_min_Car = (modelcar) * glm::vec4(bbox_min, 1.0);
-        glm::vec4 bbox_max_Car = (modelcar) * glm::vec4(bbox_max, 1.0);
+            glm::vec4 bbox_min_Car = (modelcar) * glm::vec4(bbox_min, 1.0);
+            glm::vec4 bbox_max_Car = (modelcar) * glm::vec4(bbox_max, 1.0);
 
-        // Extract the global coordinates as 3D vectors
-        glm::vec3 bbox_min_global_Car = glm::vec3(bbox_min_Car);
-        glm::vec3 bbox_max_global_Car = glm::vec3(bbox_max_Car);
+            glm::vec3 bbox_min_global_Car = glm::vec3(bbox_min_Car);
+            glm::vec3 bbox_max_global_Car = glm::vec3(bbox_max_Car);
 
-        for(int i=0; i < arrayOfPositions1.size(); i++){
+            //CARROS POLICIA
+            for(int i=0; i < arrayOfPositions1.size(); i++){
 
-        float current_pos = arrayOfPositions1[i].z-z_car_position;
-        if(current_pos<0.0f)
-          arrayOfPositions1[i].z=arrayOfPositions1[i].z+900.0f;
-        //  printf("%f",current_pos);
+                float current_pos = arrayOfPositions1[i].z-z_car_position;
+                if(current_pos<0.0f)
+                    arrayOfPositions1[i].z=arrayOfPositions1[i].z+900.0f;
 
 
-                    modelpolice = Matrix_Translate(arrayOfPositions1[i].x, -1.2f, current_pos)
-                               * Matrix_Scale(0.4f,0.4f,0.4f);
-                              //* Matrix_Rotate_Y(3.14f/2.0f);
-                    glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelpolice));
-                    glUniform1i(g_object_id_uniform, POLICE);
-                    DrawVirtualObject("the_police");
+                modelOp = Matrix_Translate(arrayOfPositions1[i].x, -1.2f, current_pos)
+                        * Matrix_Scale(0.4f,0.4f,0.4f);
+                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelOp));
+                glUniform1i(g_object_id_uniform, POLICE);
+                DrawVirtualObject("the_police");
 
-                    glm::vec3 bbox_min_Op_vec = g_VirtualScene["the_police"].bbox_min;
-                    glm::vec3 bbox_max_Op_vec = g_VirtualScene["the_police"].bbox_max;
+                glm::vec3 bbox_min_Op_vec = g_VirtualScene["the_police"].bbox_min;
+                glm::vec3 bbox_max_Op_vec = g_VirtualScene["the_police"].bbox_max;
 
-                    // Calculate the global coordinates of the bbox_min and bbox_max
-                    glm::vec4 bbox_min_Op = (modelpolice) * glm::vec4(bbox_min_Op_vec, 1.0);
-                    glm::vec4 bbox_max_Op = (modelpolice) * glm::vec4(bbox_max_Op_vec, 1.0);
+                glm::vec4 bbox_min_Op = (modelOp) * glm::vec4(bbox_min_Op_vec, 1.0);
+                glm::vec4 bbox_max_Op = (modelOp) * glm::vec4(bbox_max_Op_vec, 1.0);
 
-                    // Extract the global coordinates as 3D vectors
-                    glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
-                    glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
+                glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
+                glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
+                if(current_pos<4.0f){
                     if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
-               Collide=true;
-                }}
+                        Collide=true;}}}
+
+
+            //CARRO OPONENTE
+            for(int i=0; i < arrayOfPositions3.size(); i++){
+
+                float current_pos = arrayOfPositions3[i].z-z_car_position;
+                if(current_pos<0.0f)
+                    arrayOfPositions3[i].z=arrayOfPositions3[i].z+900.0f;
+
+                modelOp = Matrix_Translate(arrayOfPositions3[i].x, -1.3f, current_pos)
+                        * Matrix_Scale(0.45f, 0.45f, 0.45f);
+                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelOp));
+                glUniform1i(g_object_id_uniform, CHEVETAO);
+                DrawVirtualObject("the_chevetao");
+
+                glm::vec3 bbox_min_Op_vec = g_VirtualScene["the_chevetao"].bbox_min;
+                glm::vec3 bbox_max_Op_vec = g_VirtualScene["the_chevetao"].bbox_max;
+
+                glm::vec4 bbox_min_Op = (modelOp) * glm::vec4(bbox_min_Op_vec, 1.0);
+                glm::vec4 bbox_max_Op = (modelOp) * glm::vec4(bbox_max_Op_vec, 1.0);
+
+                glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
+                glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
+
+            if(current_pos<4.0f){
+                if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
+                    Collide=true;}}}
 
 
 
-                for(int i=0; i < arrayOfPositions3.size(); i++){
-            //desenha a coelho no mapa
-        //    model = Matrix_Translate(arrayOfBunnys[i].position.x, arrayOfBunnys[i].position.y, arrayOfBunnys[i].position.z)
-        float current_pos = arrayOfPositions3[i].z-z_car_position;
-        if(current_pos<0.0f)
-          arrayOfPositions3[i].z=arrayOfPositions3[i].z+900.0f;
-        //  printf("%f",current_pos);
+            for(int i=0; i < arrayOfPositions2.size(); i++){
+                float current_pos = arrayOfPositions2[i].z-z_car_position;
 
+                if(current_pos<0.0f)
+                    arrayOfPositions2[i].z=arrayOfPositions2[i].z+900.0f;
 
-                    modelOp = Matrix_Translate(arrayOfPositions3[i].x, -1.3f, current_pos)
-                                * Matrix_Scale(0.45f, 0.45f, 0.45f);
-                                //* Matrix_Rotate_Y(3.1415f);
-                    glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelOp));
-                    glUniform1i(g_object_id_uniform, CHEVETAO);
-                    DrawVirtualObject("the_chevetao");
-
-                    glm::vec3 bbox_min_Op_vec = g_VirtualScene["the_chevetao"].bbox_min;
-                    glm::vec3 bbox_max_Op_vec = g_VirtualScene["the_chevetao"].bbox_max;
-
-                    // Calculate the global coordinates of the bbox_min and bbox_max
-                    glm::vec4 bbox_min_Op = (modelOp) * glm::vec4(bbox_min_Op_vec, 1.0);
-                    glm::vec4 bbox_max_Op = (modelOp) * glm::vec4(bbox_max_Op_vec, 1.0);
-
-                    // Extract the global coordinates as 3D vectors
-                    glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
-                    glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
-
-                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
-               Collide=true;}}
-
-
-
-        for(int i=0; i < arrayOfPositions2.size(); i++){
-            float current_pos = arrayOfPositions2[i].z-z_car_position;
-
-            if(current_pos<0.0f)
-                arrayOfPositions2[i].z=arrayOfPositions2[i].z+900.0f;
-
-                modelbandidao = Matrix_Translate(arrayOfPositions2[i].x, -1.5f, current_pos)
-                            * Matrix_Scale(0.4f,0.4f,0.4f);
-                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelbandidao));
+                modelOp = Matrix_Translate(arrayOfPositions2[i].x, -1.5f, current_pos)
+                                * Matrix_Scale(0.4f,0.4f,0.4f);
+                glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelOp));
                 glUniform1i(g_object_id_uniform, BANDIDAO);
                 DrawVirtualObject("the_bandidao");
 
@@ -831,29 +809,25 @@ int main(int argc, char* argv[])
                 glm::vec3 bbox_max_Op_vec = g_VirtualScene["the_bandidao"].bbox_max;
 
                 // Calculate the global coordinates of the bbox_min and bbox_max
-                glm::vec4 bbox_min_Op = (modelbandidao) * glm::vec4(bbox_min_Op_vec, 1.0);
-                glm::vec4 bbox_max_Op = (modelbandidao) * glm::vec4(bbox_max_Op_vec, 1.0);
+                glm::vec4 bbox_min_Op = (modelOp) * glm::vec4(bbox_min_Op_vec, 1.0);
+                glm::vec4 bbox_max_Op = (modelOp) * glm::vec4(bbox_max_Op_vec, 1.0);
 
                 // Extract the global coordinates as 3D vectors
                 glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
                 glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
-            if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
-                Collide=true;}}
+                if(current_pos<4.0f){
+                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
+                        Collide=true;}}}
 
-
-        for(int i=0; i < arrayOfPositions4.size(); i++){
-            //desenha a coelho no mapa
-        //    model = Matrix_Translate(arrayOfBunnys[i].position.x, arrayOfBunnys[i].position.y, arrayOfBunnys[i].position.z)
-        float current_pos = arrayOfPositions4[i].z-z_car_position;
-        if(current_pos<0.0f)
-          arrayOfPositions4[i].z=arrayOfPositions4[i].z+900.0f;
-        //  printf("%f",current_pos);
-
+            //CARRO VERMELHO
+            for(int i=0; i < arrayOfPositions4.size(); i++){
+                float current_pos = arrayOfPositions4[i].z-z_car_position;
+                if(current_pos<0.0f)
+                    arrayOfPositions4[i].z=arrayOfPositions4[i].z+900.0f;
 
                     modelOp = Matrix_Translate(arrayOfPositions4[i].x, -1.3f, current_pos)
-                                * Matrix_Scale(0.4f,0.4f,0.4f);
-                                //* Matrix_Rotate_Y(3.1415f);
+                            * Matrix_Scale(0.4f,0.4f,0.4f);
                     glUniformMatrix4fv(g_model_uniform, 1 , GL_FALSE , glm::value_ptr(modelOp));
                     glUniform1i(g_object_id_uniform, FERRARI);
                     DrawVirtualObject("the_ferrari");
@@ -861,33 +835,37 @@ int main(int argc, char* argv[])
                     glm::vec3 bbox_min_Op_vec = g_VirtualScene["the_ferrari"].bbox_min;
                     glm::vec3 bbox_max_Op_vec = g_VirtualScene["the_ferrari"].bbox_max;
 
-                    // Calculate the global coordinates of the bbox_min and bbox_max
                     glm::vec4 bbox_min_Op = (modelOp) * glm::vec4(bbox_min_Op_vec, 1.0);
                     glm::vec4 bbox_max_Op = (modelOp) * glm::vec4(bbox_max_Op_vec, 1.0);
 
-                    // Extract the global coordinates as 3D vectors
                     glm::vec3 bbox_min_global_Op = glm::vec3(bbox_min_Op);
                     glm::vec3 bbox_max_global_Op = glm::vec3(bbox_max_Op);
 
-                    if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
-               Collide=true;}}
+                    if(current_pos<4.0f){
+                        if(bbcollision(bbox_min_global_Op,bbox_min_global_Car,bbox_max_global_Op,bbox_max_global_Car)){
+                            Collide=true;}}}
+        }
 
-
-
-      if(Collide){
-        init=false;
-        ended=true;
-        time_span=0;
-        speed=1;
-        z_car_position=-5;
-        x_z_position();
-        create_tree_positions();}
+        //BATEU
+        if(Collide){
+            init=false;
+            ended=true;
+            time_span=0;
+            speed=1;
+            z_car_position=-5;
+            x_z_position();
+            create_tree_positions();}
 
 
         if(ended)
-        TextRendering_PrintString(window, buffer, -1.0f+pad,+0.82+pad, 2.0f);
+            TextRendering_PrintString(window, buffer, -1.0f+pad,+0.82+pad, 2.0f);
         else
-        TextRendering_PrintString(window, buffer, -1.0f+pad,+0.82+pad, 2.0f);
+            TextRendering_PrintString(window, buffer, -1.0f+pad,+0.82+pad, 2.0f);
+
+
+        // Imprimimos na tela informação sobre o número de quadros renderizados
+        // por segundo (frames per second).
+        TextRendering_ShowFramesPerSecond(window);
 
         // O framebuffer onde OpenGL executa as operações de renderização não
         // é o mesmo que está sendo mostrado para o usuário, caso contrário
@@ -911,21 +889,16 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-
-bool bbcollision(glm::vec3 bbox_min1,glm::vec3 bbox_min2,glm::vec3 bbox_max1,glm::vec3 bbox_max2)
+glm::vec4 Bezier(std::vector<glm::vec4> curvaBezier, int grau, float tempoDec)
 {
-    return (
-        bbox_min1.x <= bbox_max2.x &&
-        bbox_max1.x >= bbox_min2.x &&
-        bbox_min1.z <= bbox_max2.z &&
-        bbox_max1.z >= bbox_min2.z);
-
-
-      /*  bbox1.minPoint.x <= bbox2.maxPoint.x &&
-        bbox1.maxPoint.x >= bbox2.minPoint.x &&
-        bbox1.minPoint.z <= bbox2.maxPoint.z &&
-        bbox1.maxPoint.z >= bbox2.minPoint.z);*/
-
+    std::vector<glm::vec4> pontos = curvaBezier;
+    int i = grau;
+    while (i>0){
+        for (int j = 0; j < i; j++)
+            pontos.at(j)=(pontos[j] + tempoDec * (pontos[j + 1] - pontos[j]));
+        i--;
+    }
+    return pontos[0];
 }
 
 void create_tree_positions()
@@ -939,8 +912,7 @@ void create_tree_positions()
 
 }
 
-
-glm::vec3 x_z_position()
+void x_z_position()
 {
     arrayOfPositions1.clear();
     arrayOfPositions2.clear();
@@ -956,15 +928,11 @@ glm::vec3 x_z_position()
     glm::vec3 positions;
 
     posZ+=g_distance(engine);
-   // printf("\n%f",posZ);
 
     float posX[]={-1.15f,0.0f,1.15f};
 
-
     n_obstacles = g_obstacles(engine);
-    int obss = g_obs_dis(engine);
 
-   // int random1_4=randnum(engine);
    int aux=6;
 
     for(int i=0;i<n_obstacles;i++){
@@ -1000,25 +968,23 @@ void update_rotation()
 
     if(g_aKeyPressed){
         if(ang_rotation<0.6f)
-        ang_rotation+=8.0f*time_span;
+            ang_rotation+=8.0f*time_span;
         else
             ang_rotation=ang_rotation;}
 
     if(g_dKeyPressed){
         if(ang_rotation>-0.6f)
-        ang_rotation-=8.0f*time_span;
+            ang_rotation-=8.0f*time_span;
         else
             ang_rotation=ang_rotation;}}
     else{
-
-    if(ang_rotation!=0.0f){
-        if(ang_rotation>0.0f)
-            ang_rotation-=8.0f*time_span;
-        if(ang_rotation<0.0f)
-            ang_rotation+=8.0f*time_span;}}
+        if(ang_rotation!=0.0f){
+            if(ang_rotation>0.0f)
+                ang_rotation-=8.0f*time_span;
+            if(ang_rotation<0.0f)
+                ang_rotation+=8.0f*time_span;}}
 }
 
-// Função que atualiza a posição da câmera de acordo com a tecla pressionada, utilizando o tempo decorrido para calcular a atualização da posição
 glm::vec4 Update_Camera_Position(glm::vec4 camera_position, glm::vec4 camera_view_vector, glm::vec4 camera_right_vector)
 {
     float old_car_pos = x_car_position;
@@ -1026,27 +992,17 @@ glm::vec4 Update_Camera_Position(glm::vec4 camera_position, glm::vec4 camera_vie
     glm::vec4 new_camera_position = camera_position;
 
     if(init){
-      //  new_camera_position = new_camera_position + camera_view_vector * abs(time_span*1.5f *log(time_past));
-       // z_car_position+= camera_view_vector.z * abs(time_span*1.5f*log(time_past));
        z_car_position+= camera_view_vector.z * (time_span/8) * (tempoDec);
         started=true;
         }
 
-
-    if(g_sKeyPressed){
-        //new_camera_position = new_camera_position - camera_view_vector * time_span;
-       }
-
     if(g_aKeyPressed){
-       // new_camera_position = new_camera_position + camera_right_vector * time_span;
-      // x_car_position+=4.5f*time_span;
-      x_car_position+=4.8f*time_span;
-       if (x_car_position >(1.4f))
+        x_car_position+=4.8f*time_span;
+        if (x_car_position >(1.4f))
         x_car_position=old_car_pos;
-       }
+    }
 
     if(g_dKeyPressed){
-       // new_camera_position = new_camera_position - camera_right_vector * time_span;
        x_car_position-=4.8f*time_span;
        if (x_car_position <(-1.4f))
         x_car_position=old_car_pos;}
@@ -1201,6 +1157,7 @@ void LoadShadersFromFiles()
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage10"), 10);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage11"), 11);
     glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage12"), 12);
+    glUniform1i(glGetUniformLocation(g_GpuProgramID, "TextureImage13"), 13);
     glUseProgram(0);
 }
 
@@ -1861,6 +1818,302 @@ void ErrorCallback(int error, const char* description)
     fprintf(stderr, "ERROR: GLFW: %s\n", description);
 }
 
+// Esta função recebe um vértice com coordenadas de modelo p_model e passa o
+// mesmo por todos os sistemas de coordenadas armazenados nas matrizes model,
+// view, e projection; e escreve na tela as matrizes e pontos resultantes
+// dessas transformações.
+void TextRendering_ShowModelViewProjection(
+    GLFWwindow* window,
+    glm::mat4 projection,
+    glm::mat4 view,
+    glm::mat4 model,
+    glm::vec4 p_model
+)
+{
+    if ( !g_ShowInfoText )
+        return;
+
+    glm::vec4 p_world = model*p_model;
+    glm::vec4 p_camera = view*p_world;
+    glm::vec4 p_clip = projection*p_camera;
+    glm::vec4 p_ndc = p_clip / p_clip.w;
+
+    float pad = TextRendering_LineHeight(window);
+
+    TextRendering_PrintString(window, " Model matrix             Model     In World Coords.", -1.0f, 1.0f-pad, 1.0f);
+    TextRendering_PrintMatrixVectorProduct(window, model, p_model, -1.0f, 1.0f-2*pad, 1.0f);
+
+    TextRendering_PrintString(window, "                                        |  ", -1.0f, 1.0f-6*pad, 1.0f);
+    TextRendering_PrintString(window, "                            .-----------'  ", -1.0f, 1.0f-7*pad, 1.0f);
+    TextRendering_PrintString(window, "                            V              ", -1.0f, 1.0f-8*pad, 1.0f);
+
+    TextRendering_PrintString(window, " View matrix              World     In Camera Coords.", -1.0f, 1.0f-9*pad, 1.0f);
+    TextRendering_PrintMatrixVectorProduct(window, view, p_world, -1.0f, 1.0f-10*pad, 1.0f);
+
+    TextRendering_PrintString(window, "                                        |  ", -1.0f, 1.0f-14*pad, 1.0f);
+    TextRendering_PrintString(window, "                            .-----------'  ", -1.0f, 1.0f-15*pad, 1.0f);
+    TextRendering_PrintString(window, "                            V              ", -1.0f, 1.0f-16*pad, 1.0f);
+
+    TextRendering_PrintString(window, " Projection matrix        Camera                    In NDC", -1.0f, 1.0f-17*pad, 1.0f);
+    TextRendering_PrintMatrixVectorProductDivW(window, projection, p_camera, -1.0f, 1.0f-18*pad, 1.0f);
+
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+
+    glm::vec2 a = glm::vec2(-1, -1);
+    glm::vec2 b = glm::vec2(+1, +1);
+    glm::vec2 p = glm::vec2( 0,  0);
+    glm::vec2 q = glm::vec2(width, height);
+
+    glm::mat4 viewport_mapping = Matrix(
+        (q.x - p.x)/(b.x-a.x), 0.0f, 0.0f, (b.x*p.x - a.x*q.x)/(b.x-a.x),
+        0.0f, (q.y - p.y)/(b.y-a.y), 0.0f, (b.y*p.y - a.y*q.y)/(b.y-a.y),
+        0.0f , 0.0f , 1.0f , 0.0f ,
+        0.0f , 0.0f , 0.0f , 1.0f
+    );
+
+    TextRendering_PrintString(window, "                                                       |  ", -1.0f, 1.0f-22*pad, 1.0f);
+    TextRendering_PrintString(window, "                            .--------------------------'  ", -1.0f, 1.0f-23*pad, 1.0f);
+    TextRendering_PrintString(window, "                            V                           ", -1.0f, 1.0f-24*pad, 1.0f);
+
+    TextRendering_PrintString(window, " Viewport matrix           NDC      In Pixel Coords.", -1.0f, 1.0f-25*pad, 1.0f);
+    TextRendering_PrintMatrixVectorProductMoreDigits(window, viewport_mapping, p_ndc, -1.0f, 1.0f-26*pad, 1.0f);
+}
+
+// Escrevemos na tela os ângulos de Euler definidos nas variáveis globais
+// g_AngleX, g_AngleY, e g_AngleZ.
+void TextRendering_ShowEulerAngles(GLFWwindow* window)
+{
+    if ( !g_ShowInfoText )
+        return;
+
+    float pad = TextRendering_LineHeight(window);
+
+    char buffer[80];
+    snprintf(buffer, 80, "Euler Angles rotation matrix = Z(%.2f)*Y(%.2f)*X(%.2f)\n", g_AngleZ, g_AngleY, g_AngleX);
+
+    TextRendering_PrintString(window, buffer, -1.0f+pad, 17.5*pad, 2.0f);
+}
+
+// Escrevemos na tela qual matriz de projeção está sendo utilizada.
+void TextRendering_ShowProjection(GLFWwindow* window)
+{
+    if ( !g_ShowInfoText )
+        return;
+
+    float lineheight = TextRendering_LineHeight(window);
+    float charwidth = TextRendering_CharWidth(window);
+
+    if ( g_UsePerspectiveProjection )
+        TextRendering_PrintString(window, "Perspective", 1.0f-13*charwidth, -1.0f+2*lineheight/10, 1.0f);
+    else
+        TextRendering_PrintString(window, "Orthographic", 1.0f-13*charwidth, -1.0f+2*lineheight/10, 1.0f);
+}
+
+// Escrevemos na tela o número de quadros renderizados por segundo (frames per
+// second).
+void TextRendering_ShowFramesPerSecond(GLFWwindow* window)
+{
+    if ( !g_ShowInfoText )
+        return;
+
+    // Variáveis estáticas (static) mantém seus valores entre chamadas
+    // subsequentes da função!
+    static float old_seconds = (float)glfwGetTime();
+    static int   ellapsed_frames = 0;
+    static char  buffer[20] = "?? fps";
+    static int   numchars = 7;
+
+    ellapsed_frames += 1;
+
+    // Recuperamos o número de segundos que passou desde a execução do programa
+    float seconds = (float)glfwGetTime();
+
+    // Número de segundos desde o último cálculo do fps
+    float ellapsed_seconds = seconds - old_seconds;
+
+    if ( ellapsed_seconds > 1.0f )
+    {
+        numchars = snprintf(buffer, 20, "%.2f fps", ellapsed_frames / ellapsed_seconds);
+
+        old_seconds = seconds;
+        ellapsed_frames = 0;
+    }
+
+    float lineheight = TextRendering_LineHeight(window);
+    float charwidth = TextRendering_CharWidth(window);
+
+    TextRendering_PrintString(window, buffer, 1.0f-(numchars + 1)*charwidth, 1.0f-lineheight, 1.0f);
+}
+
+// Função para debugging: imprime no terminal todas informações de um modelo
+// geométrico carregado de um arquivo ".obj".
+// Veja: https://github.com/syoyo/tinyobjloader/blob/22883def8db9ef1f3ffb9b404318e7dd25fdbb51/loader_example.cc#L98
+void PrintObjModelInfo(ObjModel* model)
+{
+  const tinyobj::attrib_t                & attrib    = model->attrib;
+  const std::vector<tinyobj::shape_t>    & shapes    = model->shapes;
+  const std::vector<tinyobj::material_t> & materials = model->materials;
+
+  printf("# of vertices  : %d\n", (int)(attrib.vertices.size() / 3));
+  printf("# of normals   : %d\n", (int)(attrib.normals.size() / 3));
+  printf("# of texcoords : %d\n", (int)(attrib.texcoords.size() / 2));
+  printf("# of shapes    : %d\n", (int)shapes.size());
+  printf("# of materials : %d\n", (int)materials.size());
+
+  for (size_t v = 0; v < attrib.vertices.size() / 3; v++) {
+    printf("  v[%ld] = (%f, %f, %f)\n", static_cast<long>(v),
+           static_cast<const double>(attrib.vertices[3 * v + 0]),
+           static_cast<const double>(attrib.vertices[3 * v + 1]),
+           static_cast<const double>(attrib.vertices[3 * v + 2]));
+  }
+
+  for (size_t v = 0; v < attrib.normals.size() / 3; v++) {
+    printf("  n[%ld] = (%f, %f, %f)\n", static_cast<long>(v),
+           static_cast<const double>(attrib.normals[3 * v + 0]),
+           static_cast<const double>(attrib.normals[3 * v + 1]),
+           static_cast<const double>(attrib.normals[3 * v + 2]));
+  }
+
+  for (size_t v = 0; v < attrib.texcoords.size() / 2; v++) {
+    printf("  uv[%ld] = (%f, %f)\n", static_cast<long>(v),
+           static_cast<const double>(attrib.texcoords[2 * v + 0]),
+           static_cast<const double>(attrib.texcoords[2 * v + 1]));
+  }
+
+  // For each shape
+  for (size_t i = 0; i < shapes.size(); i++) {
+    printf("shape[%ld].name = %s\n", static_cast<long>(i),
+           shapes[i].name.c_str());
+    printf("Size of shape[%ld].indices: %lu\n", static_cast<long>(i),
+           static_cast<unsigned long>(shapes[i].mesh.indices.size()));
+
+    size_t index_offset = 0;
+
+    assert(shapes[i].mesh.num_face_vertices.size() ==
+           shapes[i].mesh.material_ids.size());
+
+    printf("shape[%ld].num_faces: %lu\n", static_cast<long>(i),
+           static_cast<unsigned long>(shapes[i].mesh.num_face_vertices.size()));
+
+    // For each face
+    for (size_t f = 0; f < shapes[i].mesh.num_face_vertices.size(); f++) {
+      size_t fnum = shapes[i].mesh.num_face_vertices[f];
+
+      printf("  face[%ld].fnum = %ld\n", static_cast<long>(f),
+             static_cast<unsigned long>(fnum));
+
+      // For each vertex in the face
+      for (size_t v = 0; v < fnum; v++) {
+        tinyobj::index_t idx = shapes[i].mesh.indices[index_offset + v];
+        printf("    face[%ld].v[%ld].idx = %d/%d/%d\n", static_cast<long>(f),
+               static_cast<long>(v), idx.vertex_index, idx.normal_index,
+               idx.texcoord_index);
+      }
+
+      printf("  face[%ld].material_id = %d\n", static_cast<long>(f),
+             shapes[i].mesh.material_ids[f]);
+
+      index_offset += fnum;
+    }
+
+    printf("shape[%ld].num_tags: %lu\n", static_cast<long>(i),
+           static_cast<unsigned long>(shapes[i].mesh.tags.size()));
+    for (size_t t = 0; t < shapes[i].mesh.tags.size(); t++) {
+      printf("  tag[%ld] = %s ", static_cast<long>(t),
+             shapes[i].mesh.tags[t].name.c_str());
+      printf(" ints: [");
+      for (size_t j = 0; j < shapes[i].mesh.tags[t].intValues.size(); ++j) {
+        printf("%ld", static_cast<long>(shapes[i].mesh.tags[t].intValues[j]));
+        if (j < (shapes[i].mesh.tags[t].intValues.size() - 1)) {
+          printf(", ");
+        }
+      }
+      printf("]");
+
+      printf(" floats: [");
+      for (size_t j = 0; j < shapes[i].mesh.tags[t].floatValues.size(); ++j) {
+        printf("%f", static_cast<const double>(
+                         shapes[i].mesh.tags[t].floatValues[j]));
+        if (j < (shapes[i].mesh.tags[t].floatValues.size() - 1)) {
+          printf(", ");
+        }
+      }
+      printf("]");
+
+      printf(" strings: [");
+      for (size_t j = 0; j < shapes[i].mesh.tags[t].stringValues.size(); ++j) {
+        printf("%s", shapes[i].mesh.tags[t].stringValues[j].c_str());
+        if (j < (shapes[i].mesh.tags[t].stringValues.size() - 1)) {
+          printf(", ");
+        }
+      }
+      printf("]");
+      printf("\n");
+    }
+  }
+
+  for (size_t i = 0; i < materials.size(); i++) {
+    printf("material[%ld].name = %s\n", static_cast<long>(i),
+           materials[i].name.c_str());
+    printf("  material.Ka = (%f, %f ,%f)\n",
+           static_cast<const double>(materials[i].ambient[0]),
+           static_cast<const double>(materials[i].ambient[1]),
+           static_cast<const double>(materials[i].ambient[2]));
+    printf("  material.Kd = (%f, %f ,%f)\n",
+           static_cast<const double>(materials[i].diffuse[0]),
+           static_cast<const double>(materials[i].diffuse[1]),
+           static_cast<const double>(materials[i].diffuse[2]));
+    printf("  material.Ks = (%f, %f ,%f)\n",
+           static_cast<const double>(materials[i].specular[0]),
+           static_cast<const double>(materials[i].specular[1]),
+           static_cast<const double>(materials[i].specular[2]));
+    printf("  material.Tr = (%f, %f ,%f)\n",
+           static_cast<const double>(materials[i].transmittance[0]),
+           static_cast<const double>(materials[i].transmittance[1]),
+           static_cast<const double>(materials[i].transmittance[2]));
+    printf("  material.Ke = (%f, %f ,%f)\n",
+           static_cast<const double>(materials[i].emission[0]),
+           static_cast<const double>(materials[i].emission[1]),
+           static_cast<const double>(materials[i].emission[2]));
+    printf("  material.Ns = %f\n",
+           static_cast<const double>(materials[i].shininess));
+    printf("  material.Ni = %f\n", static_cast<const double>(materials[i].ior));
+    printf("  material.dissolve = %f\n",
+           static_cast<const double>(materials[i].dissolve));
+    printf("  material.illum = %d\n", materials[i].illum);
+    printf("  material.map_Ka = %s\n", materials[i].ambient_texname.c_str());
+    printf("  material.map_Kd = %s\n", materials[i].diffuse_texname.c_str());
+    printf("  material.map_Ks = %s\n", materials[i].specular_texname.c_str());
+    printf("  material.map_Ns = %s\n",
+           materials[i].specular_highlight_texname.c_str());
+    printf("  material.map_bump = %s\n", materials[i].bump_texname.c_str());
+    printf("  material.map_d = %s\n", materials[i].alpha_texname.c_str());
+    printf("  material.disp = %s\n", materials[i].displacement_texname.c_str());
+    printf("  <<PBR>>\n");
+    printf("  material.Pr     = %f\n", materials[i].roughness);
+    printf("  material.Pm     = %f\n", materials[i].metallic);
+    printf("  material.Ps     = %f\n", materials[i].sheen);
+    printf("  material.Pc     = %f\n", materials[i].clearcoat_thickness);
+    printf("  material.Pcr    = %f\n", materials[i].clearcoat_thickness);
+    printf("  material.aniso  = %f\n", materials[i].anisotropy);
+    printf("  material.anisor = %f\n", materials[i].anisotropy_rotation);
+    printf("  material.map_Ke = %s\n", materials[i].emissive_texname.c_str());
+    printf("  material.map_Pr = %s\n", materials[i].roughness_texname.c_str());
+    printf("  material.map_Pm = %s\n", materials[i].metallic_texname.c_str());
+    printf("  material.map_Ps = %s\n", materials[i].sheen_texname.c_str());
+    printf("  material.norm   = %s\n", materials[i].normal_texname.c_str());
+    std::map<std::string, std::string>::const_iterator it(
+        materials[i].unknown_parameter.begin());
+    std::map<std::string, std::string>::const_iterator itEnd(
+        materials[i].unknown_parameter.end());
+
+    for (; it != itEnd; it++) {
+      printf("  material.%s = %s\n", it->first.c_str(), it->second.c_str());
+    }
+    printf("\n");
+  }
+}
 
 // set makeprg=cd\ ..\ &&\ make\ run\ >/dev/null
 // vim: set spell spelllang=pt_br :

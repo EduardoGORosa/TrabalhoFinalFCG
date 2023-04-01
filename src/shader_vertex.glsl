@@ -43,7 +43,7 @@ void main()
     texcoords = texture_coefficients;
 
     gl_Position = projection * view * model * model_coefficients;
-
+/*
 
     // Normal do fragmento atual, interpolada pelo rasterizador a partir das
     // normais de cada vértice.
@@ -52,31 +52,37 @@ void main()
     // Vetor que define o sentido da fonte de luz em relação ao ponto atual.
     vec4 l = normalize(vec4(2.5, 1.5, 1.0, 0.0));
 
+        // Vetor que define o sentido da câmera em relação ao ponto atual.
+    vec4 v = normalize(l - position_world);
+
+    vec4 r = -l + 2*n*dot(n,l); // PREENCHA AQUI o vetor de reflexão especular ideal
     // Coordenadas de textura U e V
     vec3 Kd = vec3(1.0f, 1.0f, 1.0f);
     vec3 I = vec3(1.0,1.0,1.0);
-
+    float q = 3.5;
+    vec3 Ks = vec3(1.0,1.0,0.8);
+    vec3 phong_specular_term  = Ks*I*(pow(max(0,dot(r,v)),q));
     vec3 lambert = Kd*I* max(0,dot(n,l));
-
+    if(lambert != vec3(0.0f, 0.0f, 0.0f)){
         if ( object_id == PLANE )
         {
-            vexColor.rgb = lambert;
+            vexColor.rgb = lambert + phong_specular_term;
         }
         else if ( object_id == BACK )
         {
-            vexColor.rgb = lambert;
+            vexColor.rgb = lambert + phong_specular_term;
         }
         else if ( object_id == LEFT )
         {
-            vexColor.rgb = lambert;
+            vexColor.rgb = lambert + phong_specular_term;
         }
         else if ( object_id == RIGHT )
         {
-            vexColor.rgb = lambert;
+            vexColor.rgb = lambert + phong_specular_term;
         }
         else
-        {
+        {*/
             vexColor.rgb = pow(vexColor.rgb, vec3(1.0,1.0,1.0)/2.2);
-        }
+        //}}
 }
 
